@@ -1,0 +1,68 @@
+# =================================================================
+# Epicenter DSP Professional 1.0 - .gitignore
+# =================================================================
+
+# Visual Studio & IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosv
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# Build Outputs (CMake, MSVC, .NET)
+**/build*/
+**/[Bb]in/
+**/[Oo]bj/
+**/out/
+**/x64/
+**/x86/
+**/Debug/
+**/Release/
+Generated Files/
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.ninja
+.ninja_*
+
+# Compiled binaries and libraries
+*.ilk
+*.pdb
+*.idb
+*.lib
+*.exp
+*.obj
+*.iobj
+*.ipdb
+*.pri
+*.xbf
+*.VisualState.xml
+
+# Logs and runtime caches
+*.log
+build.log
+apo_backup.json
+
+# Audio media files (avoid committing large binary samples)
+*.wav
+*.flac
+*.mp3
+*.aac
+*.ogg
+epicenter-lab/output/
+epicenter-lab/*.exe
+
+# Third-party driver redistributables
+VBCABLE_*
+vbaudio_cable*
+vbMmeCable*
+readme.txt

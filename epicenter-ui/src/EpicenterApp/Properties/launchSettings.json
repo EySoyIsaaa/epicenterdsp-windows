@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "EpicenterApp (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "EpicenterApp (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

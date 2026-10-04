@@ -1,0 +1,86 @@
+<UserControl
+    x:Class="EpicenterApp.Controls.RotaryKnob"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="True"
+    ToolTipService.ToolTip="Intensity: Controls low-frequency reconstruction depth (0-100%). Drag vertically, use wheel, or hold Shift for fine-tuning.">
+
+    <Grid Width="160" Height="170" Background="Transparent"
+          PointerPressed="OnPointerPressed"
+          PointerMoved="OnPointerMoved"
+          PointerReleased="OnPointerReleased"
+          PointerCaptureLost="OnPointerCaptureLost"
+          PointerWheelChanged="OnPointerWheelChanged"
+          DoubleTapped="OnDoubleTapped"
+          KeyDown="OnKeyDown"
+          GotFocus="OnGotFocus"
+          LostFocus="OnLostFocus">
+
+        <!-- Outer Track Ring (Dark Slate) -->
+        <Path x:Name="TrackPath"
+              Stroke="{StaticResource StudioBorderSubtle}"
+              StrokeThickness="5"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="0,4,0,0" />
+
+        <!-- Active Progress Arc (Amber Gold) -->
+        <Path x:Name="ActiveArcPath"
+              Stroke="{StaticResource EpicenterAmberGold}"
+              StrokeThickness="6"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="0,4,0,0" />
+
+        <!-- Inner Dial Body with dynamic focus ring -->
+        <Ellipse x:Name="InnerDialEllipse"
+                 Width="116" Height="116"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Top"
+                 Margin="0,15,0,0">
+            <Ellipse.Fill>
+                <RadialGradientBrush Center="0.5,0.4" GradientOrigin="0.5,0.4" RadiusX="0.5" RadiusY="0.5">
+                    <GradientStop Color="#1A1E29" Offset="0.0" />
+                    <GradientStop Color="#111318" Offset="0.8" />
+                    <GradientStop Color="#0D0E12" Offset="1.0" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+            <Ellipse.Stroke>
+                <SolidColorBrush Color="#2A3040" />
+            </Ellipse.Stroke>
+            <Ellipse.StrokeThickness>1</Ellipse.StrokeThickness>
+        </Ellipse>
+
+        <!-- Numeric Center Display (VALUE > GRAPHIC) -->
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,40,0,0"
+                    Spacing="-4">
+            <TextBlock x:Name="ValueTextBlock"
+                       Text="75"
+                       FontFamily="Cascadia Mono, Consolas, Segoe UI Mono"
+                       FontSize="34"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryHigh}"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock Text="%"
+                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource EpicenterAmberGold}"
+                       HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Parameter Label Below Knob -->
+        <TextBlock Text="INTENSITY"
+                   Style="{StaticResource StudioTechnicalHeaderStyle}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,2" />
+    </Grid>
+</UserControl>

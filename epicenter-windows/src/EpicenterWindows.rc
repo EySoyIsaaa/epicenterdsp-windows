@@ -1,0 +1,37 @@
+#include "resource.h"
+#include <windows.h>
+
+IDR_APP_MANIFEST RT_MANIFEST "EpicenterWindows.manifest"
+IDI_APP_ICON ICON "assets/EpicenterDSP.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040A04B0"
+        BEGIN
+            VALUE "CompanyName", "Epicenter\0"
+            VALUE "FileDescription", "EpicenterDSP Windows - audio en tiempo real\0"
+            VALUE "FileVersion", "1.1.0\0"
+            VALUE "InternalName", "EpicenterDSP Windows\0"
+            VALUE "OriginalFilename", "EpicenterDSP Windows.exe\0"
+            VALUE "ProductName", "EpicenterDSP Windows\0"
+            VALUE "ProductVersion", "1.1.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x040A, 1200
+    END
+END

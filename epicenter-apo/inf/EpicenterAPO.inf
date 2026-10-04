@@ -1,0 +1,57 @@
+;
+; EpicenterAPO.inf
+; Windows Audio Processing Object (APO) Driver Extension Package
+; Copyright (c) 2026 Epicenter DSP Professional
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Extension
+ClassGuid   = {e2f840fd-3325-473c-aa27-04771f251648}
+Provider    = %ProviderName%
+ExtensionId = {7A301D02-6014-41A5-BF23-45F456AC9833}
+CatalogFile = EpicenterAPO.cat
+DriverVer   = 10/04/2026,1.0.0.1
+
+[DestinationDirs]
+DefaultDestDir = 13 ; Driver Store
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+EpicenterAPO.dll = 1
+
+[Manufacturer]
+%ManufacturerName% = EpicenterApoDevice, NTamd64.10.0...17763
+
+[EpicenterApoDevice.NTamd64.10.0...17763]
+%EpicenterApo.DeviceDesc% = EpicenterApo_Install, NT\Audio
+
+[EpicenterApo_Install]
+CopyFiles = EpicenterApo_CopyFiles
+RegisterDlls = EpicenterApo_RegisterDlls
+
+[EpicenterApo_Install.Components]
+
+[EpicenterApo_CopyFiles]
+EpicenterAPO.dll
+
+[EpicenterApo_RegisterDlls]
+13,,EpicenterAPO.dll,1
+
+[EpicenterApo_Install.HW]
+AddReg = EpicenterApo_AddReg
+
+[EpicenterApo_AddReg]
+; PKEY_FX_EndpointEffectClsid -> {68C32E69-906A-4A0E-9214-41A832A88877}
+HKR,"FxProperties", "{D04E05A6-594B-4fb6-A80D-01AF5EED7D1D},7", 0x00000000, "{68C32E69-906A-4A0E-9214-41A832A88877}"
+; PKEY_FX_FriendlyName
+HKR,"FxProperties", "{D04E05A6-594B-4fb6-A80D-01AF5EED7D1D},4", 0x00000000, %EpicenterApo.FriendlyName%
+
+[Strings]
+ProviderName            = "Epicenter DSP"
+ManufacturerName        = "Epicenter DSP Audio Technologies"
+DiskName                = "Epicenter DSP Installation Disk"
+EpicenterApo.DeviceDesc = "Epicenter DSP Audio Enhancement Extension"
+EpicenterApo.FriendlyName = "Epicenter DSP Professional APO"

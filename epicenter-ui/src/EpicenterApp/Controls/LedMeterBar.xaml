@@ -1,0 +1,138 @@
+<UserControl
+    x:Class="EpicenterApp.Controls.LedMeterBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Style="{StaticResource StudioRackCardStyle}" Padding="14,10,14,12">
+        <Grid RowSpacing="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header Row: Label & Readout -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TitleTextBlock"
+                           Text="OUTPUT L/R"
+                           Style="{StaticResource StudioTechnicalHeaderStyle}"
+                           VerticalAlignment="Center" />
+
+                <!-- Digital Peak Readout -->
+                <TextBlock x:Name="ReadoutTextBlock"
+                           Grid.Column="1"
+                           Text="-12.4 dB"
+                           FontFamily="Cascadia Mono, Consolas, Segoe UI Mono"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryMuted}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0" />
+
+                <!-- Clip Warning Badge -->
+                <Border x:Name="ClipBadge"
+                        Grid.Column="2"
+                        Width="36" Height="16"
+                        Background="#2B1515"
+                        BorderBrush="#4D1C1C"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        PointerPressed="OnClipBadgePointerPressed"
+                        ToolTipService.ToolTip="Digital Peak Clipping Indicator: Latches on signals exceeding -0.1 dBFS. Auto-resets after 2s or click to reset.">
+                    <TextBlock x:Name="ClipTextBlock"
+                               Text="CLIP"
+                               FontFamily="Cascadia Mono, Consolas"
+                               FontSize="9"
+                               FontWeight="Bold"
+                               Foreground="#803333"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <!-- Channel L Meter Bar -->
+            <Grid Grid.Row="1" Height="10">
+                <!-- Background Rail -->
+                <Border Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
+
+                <!-- Active RMS Fill -->
+                <Border x:Name="LeftRmsBar"
+                        HorizontalAlignment="Left"
+                        Width="0"
+                        CornerRadius="2">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#0891B2" Offset="0.0" />
+                            <GradientStop Color="#06B6D4" Offset="0.75" />
+                            <GradientStop Color="#F59E0B" Offset="0.95" />
+                            <GradientStop Color="#EF4444" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Peak Hold Indicator -->
+                <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Border x:Name="LeftPeakNeedle"
+                            Width="2" Height="10"
+                            Background="#F8FAFC"
+                            Canvas.Left="0" />
+                </Canvas>
+            </Grid>
+
+            <!-- Channel R Meter Bar -->
+            <Grid Grid.Row="2" Height="10">
+                <!-- Background Rail -->
+                <Border Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
+
+                <!-- Active RMS Fill -->
+                <Border x:Name="RightRmsBar"
+                        HorizontalAlignment="Left"
+                        Width="0"
+                        CornerRadius="2">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#0891B2" Offset="0.0" />
+                            <GradientStop Color="#06B6D4" Offset="0.75" />
+                            <GradientStop Color="#F59E0B" Offset="0.95" />
+                            <GradientStop Color="#EF4444" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Peak Hold Indicator -->
+                <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Border x:Name="RightPeakNeedle"
+                            Width="2" Height="10"
+                            Background="#F8FAFC"
+                            Canvas.Left="0" />
+                </Canvas>
+            </Grid>
+
+            <!-- Decibel Scale Ruler -->
+            <Grid Grid.Row="3" Margin="0,1,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="-48" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Left" />
+                <TextBlock Grid.Column="1" Text="-36" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="-24" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="3" Text="-12" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="4" Text="-6"  Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="5" Text="0 dB" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8" HorizontalAlignment="Right" />
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>
