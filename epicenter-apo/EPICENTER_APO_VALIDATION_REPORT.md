@@ -1,3 +1,5 @@
+> Informe histórico de una etapa anterior. Las pruebas locales descritas no confirman una instalación ni carga actual en Windows. Consulta [el estado actual](../PRUEBA_APO.md) y [el plan de despliegue](../docs/APO_DEPLOYMENT_PLAN.md).
+
 # EPICENTER APO & IPC — INFORME DE AUDITORÍA Y VALIDACIÓN TÉCNICA
 **Epicenter DSP Professional 1.0 — Paso 2**
 
@@ -120,7 +122,7 @@ La máquina de estados del APO dentro de `audiodg.exe` es:
 
 ## 3. Validación del IPC en Escenarios Reales (Casos A a G)
 
-Todos los casos fueron probados y validados programáticamente mediante la suite de integración en [test_apo_lifecycle_and_resilience.cpp](file:///c:/Users/Isaias/Desktop/Epicenter%20en%20tiempo%20real%20windows/epicenter-apo/tests/test_apo_lifecycle_and_resilience.cpp):
+Todos los casos fueron probados y validados programáticamente mediante la suite de integración en [test_apo_lifecycle_and_resilience.cpp](tests/test_apo_lifecycle_and_resilience.cpp):
 
 - **Caso A (Windows inicia, UI no abierta)**:
   - El APO procesa en bypass estacionario puro.
@@ -185,7 +187,7 @@ D:(A;;GA;;;LS)(A;;GA;;;BA)(A;;GRGW;;;IU)(A;;GRGW;;;AC)S:(ML;;NW;;;LW)
 
 ## 5. Auditoría Técnica de la Implementación del SeqLock
 
-La sincronización entre el hilo de la UI y el hilo realtime de audio se realiza mediante una implementación lock-free de **SeqLock** en [EpicenterApoIpc.h](file:///c:/Users/Isaias/Desktop/Epicenter%20en%20tiempo%20real%20windows/epicenter-apo/include/EpicenterApoIpc.h):
+La sincronización entre el hilo de la UI y el hilo realtime de audio se realiza mediante una implementación lock-free de **SeqLock** en [EpicenterApoIpc.h](include/EpicenterApoIpc.h):
 
 ### Respuestas a las Preguntas de Auditoría:
 
@@ -230,7 +232,7 @@ La sincronización entre el hilo de la UI y el hilo realtime de audio se realiza
 
 ## 6. Auditoría del Crossfade A/B (Linear vs Equal-Power)
 
-El módulo [Crossfader.hpp](file:///c:/Users/Isaias/Desktop/Epicenter%20en%20tiempo%20real%20windows/epicenter-apo/src/Crossfader.hpp) fue inspeccionado a fondo:
+El módulo [Crossfader.hpp](src/Crossfader.hpp) fue inspeccionado a fondo:
 
 ### Hallazgo Importante:
 - La fórmula de ganancia en el código es:
@@ -285,7 +287,7 @@ Se auditaron y diferenciaron las dos rutas de bypass en el APO:
 
 ## 8. Revisión del INF y Registro de Windows
 
-El archivo [EpicenterAPO.inf](file:///c:/Users/Isaias/Desktop/Epicenter%20en%20tiempo%20real%20windows/epicenter-apo/inf/EpicenterAPO.inf) define el paquete de extensión de controlador para Windows Audio Engine:
+El archivo [EpicenterAPO.inf](inf/EpicenterAPO.inf) define el paquete de extensión de controlador para Windows Audio Engine:
 
 ### Estado Real y Alcance Actual:
 - **Registro COM**: Registra el CLSID `{68C32E69-906A-4A0E-9214-41A832A88877}` en `HKCR\CLSID` y `HKLM\SOFTWARE\Classes\AudioEngine\AudioProcessingObjects`.
@@ -316,7 +318,7 @@ La auditoría se ejecutó en este entorno Windows local (Windows 11 x64, Build 2
 
 ## 10. Validación de Rendimiento Desglosada por Capa
 
-Ejecución del benchmark de aislamiento de capas [`layer_breakdown_benchmark.exe`](file:///c:/Users/Isaias/Desktop/Epicenter%20en%20tiempo%20real%20windows/epicenter-apo/build/Release/layer_breakdown_benchmark.exe) (48 kHz, Estéreo, 256 muestras por bloque = quantum de **$5,333.33$ µs**):
+Ejecución del benchmark de aislamiento de capas [`layer_breakdown_benchmark.exe`](benchmarks/layer_breakdown_benchmark.cpp) (48 kHz, Estéreo, 256 muestras por bloque = quantum de **$5,333.33$ µs**):
 
 | Subcapa / Componente | Tiempo Promedio por Bloque | % del Quantum Disponible | % del Tiempo Total de APO |
 |---|---|---|---|

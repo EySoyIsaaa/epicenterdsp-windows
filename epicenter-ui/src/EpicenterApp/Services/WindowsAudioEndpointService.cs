@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using EpicenterApp.Models;
 
 namespace EpicenterApp.Services;
 
+[ComVisible(true)]
 public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEndpointService.IMMNotificationClient
 {
     private const int EDataFlow_eRender = 0;
@@ -80,14 +83,6 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
 
             if (_enumerator == null)
             {
-                _cachedDefaultEndpoint = new AudioEndpointInfo(
-                    Id: "default",
-                    Name: "Default Render Device",
-                    IsDefault: true,
-                    Status: "Active",
-                    IsApoBound: true
-                );
-                _cachedEndpoints.Add(_cachedDefaultEndpoint);
                 return;
             }
 
@@ -103,7 +98,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
                         Name: name,
                         IsDefault: true,
                         Status: "Active",
-                        IsApoBound: true
+                        IsApoBound: IsEndpointBound(defaultId)
                     );
                     Marshal.ReleaseComObject(defDevice);
                 }
@@ -131,7 +126,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
                                 Name: name,
                                 IsDefault: isDefault,
                                 Status: "Active",
-                                IsApoBound: isDefault
+                                IsApoBound: IsEndpointBound(id)
                             );
 
                             _cachedEndpoints.Add(info);
@@ -150,23 +145,29 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
                 // Ignored
             }
 
-            if (_cachedDefaultEndpoint == null && _cachedEndpoints.Count > 0)
-            {
-                _cachedDefaultEndpoint = _cachedEndpoints[0];
-            }
-            else if (_cachedDefaultEndpoint == null)
-            {
-                _cachedDefaultEndpoint = new AudioEndpointInfo(
-                    Id: "default",
-                    Name: "Default Render Device",
-                    IsDefault: true,
-                    Status: "Active",
-                    IsApoBound: true
-                );
-                _cachedEndpoints.Add(_cachedDefaultEndpoint);
-            }
+            // Do not substitute a different output when Windows has no default.
         }
     }
+
+    private static bool IsEndpointBound(string? endpointId)
+    {
+        if (endpointId == null) return false;
+        var match = Regex.Match(endpointId, @"\{[0-9a-fA-F-]{36}\}$");
+        if (!match.Success) return false;
+        try
+        {
+            using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+            using var fx = machine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\" + match.Value + @"\FxProperties");
+            var effect = fx?.GetValue("{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7") as string;
+            return IsKnownEpicenterEffect(effect);
+        }
+        catch { return false; }
+    }
+
+    public static bool IsKnownEpicenterEffect(string? effect) =>
+        Guid.TryParse(effect, out var clsid) &&
+        (clsid == new Guid("68C32E69-906A-4A0E-9214-41A832A88877") ||
+         clsid == new Guid("8F7A7248-F617-45AF-ACDA-C1C10F99E4D8"));
 
     private static string? GetDeviceFriendlyName(IMMDevice device)
     {
@@ -199,19 +200,16 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
     // IMMNotificationClient implementation
     void IMMNotificationClient.OnDeviceStateChanged(string pwstrDeviceId, uint dwNewState)
     {
-        Refresh();
         DefaultDeviceChanged?.Invoke(this, EventArgs.Empty);
     }
 
     void IMMNotificationClient.OnDeviceAdded(string pwstrDeviceId)
     {
-        Refresh();
         DefaultDeviceChanged?.Invoke(this, EventArgs.Empty);
     }
 
     void IMMNotificationClient.OnDeviceRemoved(string pwstrDeviceId)
     {
-        Refresh();
         DefaultDeviceChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -219,7 +217,6 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
     {
         if (flow == EDataFlow_eRender)
         {
-            Refresh();
             DefaultDeviceChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -251,7 +248,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
     [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
     private class MMDeviceEnumeratorComObject { }
 
-    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
     {
         [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IMMDeviceCollection devices);
@@ -261,14 +258,14 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
         [PreserveSig] int UnregisterEndpointNotificationCallback(IMMNotificationClient client);
     }
 
-    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComImport, Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceCollection
     {
         [PreserveSig] int GetCount(out uint count);
         [PreserveSig] int Item(uint index, out IMMDevice device);
     }
 
-    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDevice
     {
         [PreserveSig] int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
@@ -277,7 +274,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
         [PreserveSig] int GetState(out uint state);
     }
 
-    [Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IPropertyStore
     {
         [PreserveSig] int GetCount(out uint count);
@@ -287,7 +284,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
         [PreserveSig] int Commit();
     }
 
-    [Guid("7991EEC8-36A8-429D-9F65-DDE80986132A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [ComVisible(true), Guid("7991EEC8-36A8-429D-9F65-DDE80986132A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IMMNotificationClient
     {
         void OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, uint dwNewState);
@@ -304,7 +301,7 @@ public class WindowsAudioEndpointService : IAudioEndpointService, WindowsAudioEn
         public uint pid;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     private struct PropVariant
     {
         [FieldOffset(0)] public ushort vt;

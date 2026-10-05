@@ -53,6 +53,13 @@ TEST_CASE("apo_properties_and_latency") {
     CHECK((props->Flags & APO_FLAG_INPLACE) != 0);
     CHECK(props->u32MinInputConnections == 1);
     CHECK(props->u32MaxInputConnections == 1);
+    CHECK(props->u32MaxInstances == 32);
+    CHECK(props->u32NumAPOInterfaces == 1);
+    CHECK(props->iidAPOInterfaceList[0] == __uuidof(IAudioProcessingObject));
+    IUnknown* registeredInterface = nullptr;
+    CHECK(SUCCEEDED(apo->QueryInterface(props->iidAPOInterfaceList[0],
+        reinterpret_cast<void**>(&registeredInterface))));
+    if (registeredInterface) registeredInterface->Release();
     CoTaskMemFree(props);
 
     apo->Release();

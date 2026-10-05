@@ -1,0 +1,73 @@
+; Component payload foundation for Windows 11 x64 development.
+; This does NOT create an audio child device or bind to an endpoint on its own.
+; A hardware-specific extension INF must create the matching SWC component and
+; supply validated KS interface/pin effects associations. Do not force-install.
+[Version]
+Signature = "$WINDOWS NT$"
+Class = AudioProcessingObject
+ClassGuid = {5989fce8-9cd0-467d-8a6a-5419e31529d4}
+Provider = %ProviderName%
+DriverVer = 10/04/2026,1.0.0.2
+CatalogFile = EpicenterApoComponent.cat
+PnpLockdown = 1
+
+[Manufacturer]
+%ProviderName% = EpicenterComponents,NTamd64.10.0...22000
+
+[EpicenterComponents.NTamd64.10.0...22000]
+%ComponentName% = Epicenter_Install,SWC\VEN_EPICENTERDSP&CID_EFX
+
+[Epicenter_Install]
+CopyFiles = Epicenter_CopyFiles
+AddReg = Epicenter_Registration
+
+[Epicenter_Install.HW]
+AddReg = Epicenter_FriendlyName
+
+[Epicenter_Install.Services]
+AddService = ,2
+
+[Epicenter_FriendlyName]
+HKR,,FriendlyName,,%ComponentName%
+
+[Epicenter_Registration]
+HKR,Classes\CLSID\%EpicenterClsid%,,,%ComponentName%
+HKR,Classes\CLSID\%EpicenterClsid%\InProcServer32,,0x00020000,%13%\EpicenterAPO.dll
+HKR,Classes\CLSID\%EpicenterClsid%\InProcServer32,ThreadingModel,,"Both"
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,FriendlyName,,%ComponentName%
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,Copyright,,%Copyright%
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MajorVersion,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MinorVersion,0x00010001,0
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,Flags,0x00010001,15
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MinInputConnections,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MaxInputConnections,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MinOutputConnections,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MaxOutputConnections,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,MaxInstances,0x00010001,32
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,NumAPOInterfaces,0x00010001,1
+HKR,AudioEngine\AudioProcessingObjects\%EpicenterClsid%,APOInterface0,,"{FD7F2B29-24D0-4B5C-B177-592C39F9CA10}"
+
+[Epicenter_CopyFiles]
+EpicenterAPO.dll
+
+[DestinationDirs]
+Epicenter_CopyFiles = 13
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+EpicenterAPO.dll = 1
+
+[SignatureAttributes]
+EpicenterAPO.dll = SignatureAttributes.PETrust
+
+[SignatureAttributes.PETrust]
+PETrust = true
+
+[Strings]
+ProviderName = "EpicenterDSP Labs"
+ComponentName = "EpicenterDSP Windows APO (Development)"
+Copyright = "Copyright (c) 2026 EpicenterDSP Labs"
+DiskName = "EpicenterDSP Windows development payload"
+EpicenterClsid = "{8F7A7248-F617-45AF-ACDA-C1C10F99E4D8}"

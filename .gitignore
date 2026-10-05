@@ -13,6 +13,15 @@
 *.VC.opendb
 
 # Build Outputs (CMake, MSVC, .NET)
+.tools/
+.dev-signing/
+*.pfx
+*.p12
+*.dpapi
+dist/
+dist/EpicenterDSP Windows/
+dist/EpicenterDSP Windows Actualizado/
+artifacts/apo-development/
 **/build*/
 **/[Bb]in/
 **/[Oo]bj/

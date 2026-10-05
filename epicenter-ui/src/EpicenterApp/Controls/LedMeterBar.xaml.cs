@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,12 +9,15 @@ namespace EpicenterApp.Controls;
 
 public sealed partial class LedMeterBar : UserControl
 {
+    public static readonly DependencyProperty IsAvailableProperty = DependencyProperty.Register(
+        nameof(IsAvailable), typeof(bool), typeof(LedMeterBar), new PropertyMetadata(true, OnLevelsChangedStatic));
+    public bool IsAvailable { get => (bool)GetValue(IsAvailableProperty); set => SetValue(IsAvailableProperty, value); }
     public static readonly DependencyProperty TitleProperty =
         DependencyProperty.Register(
             nameof(Title),
             typeof(string),
             typeof(LedMeterBar),
-            new PropertyMetadata("METER L/R", OnTitleChangedStatic));
+            new PropertyMetadata("LEVELS", OnTitleChangedStatic));
 
     public static readonly DependencyProperty PeakDbfsProperty =
         DependencyProperty.Register(
@@ -60,23 +64,32 @@ public sealed partial class LedMeterBar : UserControl
         set => SetValue(IsActiveProperty, value);
     }
 
-    private double _peakHoldL = -96.0;
-    private double _peakHoldR = -96.0;
+    private double _peakHoldDbfs = -96.0;
+    private double _peakHoldUntil;
+    private double _clipHoldUntil;
+    private double _lastVisualTime;
     private bool _isClipping;
-    private int _clipHoldCounter;
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private readonly DispatcherTimer _decayTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private const double HoldSeconds = 2.0;
+    private const double PeakDecayDbPerSecond = 18.0;
 
     public LedMeterBar()
     {
         InitializeComponent();
-        Loaded += (_, _) => UpdateVisuals();
+        _decayTimer.Tick += (_, _) => UpdateVisuals();
+        Loaded += (_, _) => { UpdateVisuals(); _decayTimer.Start(); };
+        Unloaded += (_, _) => _decayTimer.Stop();
         SizeChanged += (_, _) => UpdateVisuals();
+        PeakRail.SizeChanged += (_, _) => UpdateVisuals();
+        RmsRail.SizeChanged += (_, _) => UpdateVisuals();
     }
 
     private static void OnTitleChangedStatic(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is LedMeterBar m)
         {
-            m.TitleTextBlock.Text = (string)e.NewValue;
+            if (m.TitleTextBlock is not null) m.TitleTextBlock.Text = (string)e.NewValue;
         }
     }
 
@@ -96,63 +109,46 @@ public sealed partial class LedMeterBar : UserControl
 
     private void UpdateVisuals()
     {
-        double totalWidth = ActualWidth > 40 ? ActualWidth - 28 : 200.0;
-        if (totalWidth <= 0) return;
+        if (ReadoutTextBlock == null) return;
+        double now = _clock.Elapsed.TotalSeconds;
+        bool available = IsActive && IsAvailable;
+        double peak = available && double.IsFinite(PeakDbfs) ? PeakDbfs : -96.0;
+        double rms = available && double.IsFinite(RmsDbfs) ? RmsDbfs : -96.0;
 
-        double peak = IsActive ? PeakDbfs : -96.0;
-        double rms = IsActive ? RmsDbfs : -96.0;
+        if (!available)
+        {
+            _peakHoldDbfs = -96.0;
+            _peakHoldUntil = _clipHoldUntil = 0.0;
+        }
 
-        // Clip detection with ~2s timed decay hold (60 frames at 30 Hz)
-        if (peak >= -0.1)
+        // Monotonic time, not callback counts: updating peak and RMS separately
+        // must not halve the hold period. Timer also clears latches on steady audio.
+        if (available && peak >= -0.1) _clipHoldUntil = now + HoldSeconds;
+        _isClipping = available && now < _clipHoldUntil;
+
+        if (available && peak >= _peakHoldDbfs)
         {
-            _isClipping = true;
-            _clipHoldCounter = 60;
+            _peakHoldDbfs = peak;
+            _peakHoldUntil = now + HoldSeconds;
         }
-        else if (_clipHoldCounter > 0)
+        else if (available && now > _peakHoldUntil)
         {
-            _clipHoldCounter--;
-            if (_clipHoldCounter == 0)
-            {
-                _isClipping = false;
-            }
+            double decaySeconds = Math.Max(0.0, now - Math.Max(_lastVisualTime, _peakHoldUntil));
+            _peakHoldDbfs = Math.Max(peak, _peakHoldDbfs - PeakDecayDbPerSecond * decaySeconds);
         }
+        _lastVisualTime = now;
 
         UpdateClipVisuals();
+        ClipBadge.Opacity = available ? 1.0 : 0.4;
+        ReadoutTextBlock.Text = !available ? "N/A" : peak <= -96.0 ? "−∞ dBFS" : $"{peak:F1} dBFS";
 
-        // Digital Peak Text
-        if (!IsActive || peak <= -80.0)
-        {
-            ReadoutTextBlock.Text = "-inf dB";
-        }
-        else
-        {
-            ReadoutTextBlock.Text = $"{peak:F1} dB";
-        }
-
-        // Peak Hold Decay (0.5 dB decay per frame)
-        if (peak >= _peakHoldL)
-        {
-            _peakHoldL = peak;
-        }
-        else
-        {
-            _peakHoldL = Math.Max(-96.0, _peakHoldL - 0.6);
-        }
-
-        _peakHoldR = _peakHoldL; // Stereo linked peak
-
-        // Normalized widths [0.0, 1.0] from -48 dBFS to 0 dBFS
-        double rmsNorm = NormalizeDbfs(rms);
-        double peakNorm = NormalizeDbfs(_peakHoldL);
-
-        double rmsWidth = Math.Clamp(rmsNorm * totalWidth, 0.0, totalWidth);
-        double peakLeftPos = Math.Clamp(peakNorm * (totalWidth - 2), 0.0, totalWidth - 2);
-
-        LeftRmsBar.Width = rmsWidth;
-        RightRmsBar.Width = rmsWidth;
-
-        Canvas.SetLeft(LeftPeakNeedle, peakLeftPos);
-        Canvas.SetLeft(RightPeakNeedle, peakLeftPos);
+        // IPC carries aggregate peak/RMS only. Each row shows its actual metric.
+        double peakWidth = Math.Max(0.0, PeakRail.ActualWidth);
+        double rmsWidth = Math.Max(0.0, RmsRail.ActualWidth);
+        PeakBar.Width = NormalizeDbfs(peak) * peakWidth;
+        RmsBar.Width = NormalizeDbfs(rms) * rmsWidth;
+        PeakNeedle.Visibility = available && _peakHoldDbfs > -48.0 ? Visibility.Visible : Visibility.Collapsed;
+        Canvas.SetLeft(PeakNeedle, NormalizeDbfs(_peakHoldDbfs) * Math.Max(0.0, peakWidth - 2.0));
     }
 
     private static double NormalizeDbfs(double db)
@@ -183,7 +179,7 @@ public sealed partial class LedMeterBar : UserControl
     {
         // Click on CLIP badge resets clipping latch immediately
         _isClipping = false;
-        _clipHoldCounter = 0;
+        _clipHoldUntil = 0.0;
         UpdateClipVisuals();
         e.Handled = true;
     }

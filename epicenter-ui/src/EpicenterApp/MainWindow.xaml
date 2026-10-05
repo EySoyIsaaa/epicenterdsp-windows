@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:EpicenterApp.Controls"
     xmlns:models="using:EpicenterApp.Models"
-    Title="Epicenter DSP Professional 1.0">
+    Title="EpicenterDSP Windows — Professional">
 
     <Grid Background="{StaticResource StudioBackgroundDark}">
         <Grid.RowDefinitions>
@@ -32,17 +32,17 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Brand Title -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="EPICENTER DSP"
+                <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Text="EpicenterDSP Windows"
                                FontFamily="Segoe UI Variable Display, Segoe UI"
-                               FontSize="14"
+                               FontSize="17"
                                FontWeight="Bold"
-                               CharacterSpacing="80"
                                Foreground="{StaticResource TextPrimaryHigh}" />
-                    <TextBlock Text="PROFESSIONAL 1.0"
+                    <TextBlock Text="PROFESSIONAL · AUDIO EN TIEMPO REAL"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
-                               FontSize="11"
+                               FontSize="9"
                                FontWeight="SemiBold"
+                               CharacterSpacing="110"
                                Foreground="{StaticResource TextSecondaryMuted}"
                                VerticalAlignment="Center" />
                 </StackPanel>
@@ -51,7 +51,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
                     <!-- Presets Drawer Button -->
                     <Button Height="32"
-                            Background="#10131A"
+                            Background="#111111"
                             BorderBrush="{StaticResource StudioBorderSubtle}"
                             BorderThickness="1"
                             CornerRadius="6"
@@ -72,7 +72,7 @@
 
                     <!-- Settings & Diagnostics Button -->
                     <Button Height="32"
-                            Background="#10131A"
+                            Background="#111111"
                             BorderBrush="{StaticResource StudioBorderSubtle}"
                             BorderThickness="1"
                             CornerRadius="6"
@@ -80,7 +80,7 @@
                             Click="OnHeaderSettingsButtonClick"
                             ToolTipService.ToolTip="Configuración técnica de audio, latencia y endpoints">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="SETTINGS"
+                            <TextBlock Text="AJUSTES"
                                        FontFamily="Segoe UI Variable Text, Segoe UI"
                                        FontSize="10.5"
                                        FontWeight="Bold"
@@ -93,7 +93,7 @@
 
                 <!-- Status Badge (Click to open Diagnostics) -->
                 <Button Grid.Column="3"
-                        Background="#10131A"
+                        Background="#111111"
                         BorderBrush="{StaticResource StudioBorderSubtle}"
                         BorderThickness="1"
                         CornerRadius="14"
@@ -120,7 +120,7 @@
         <!-- ROW 1: AUDIO ENGINE ALERT BANNER                                    -->
         <!-- =================================================================== -->
         <Border Grid.Row="1"
-                Background="#241408"
+                Background="#251015"
                 BorderBrush="{StaticResource EpicenterAmberGold}"
                 BorderThickness="0,0,0,1"
                 Padding="20,6,20,6"
@@ -137,6 +137,8 @@
                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                FontSize="11"
                                FontWeight="SemiBold"
+                               MaxWidth="560"
+                               TextWrapping="Wrap"
                                Foreground="{StaticResource TextPrimaryHigh}"
                                VerticalAlignment="Center" />
                 </StackPanel>
@@ -147,7 +149,7 @@
                         FontWeight="Bold"
                         Padding="10,4,10,4"
                         CornerRadius="4"
-                        Background="#3D200A"
+                        Background="#3A141B"
                         BorderBrush="{StaticResource EpicenterAmberGold}"
                         BorderThickness="1"
                         Foreground="{StaticResource EpicenterAmberGold}"
@@ -159,20 +161,36 @@
         <!-- =================================================================== -->
         <!-- ROW 2: PROCESSING BAY (BASS RECONSTRUCTION + KNOB + SWITCHES)       -->
         <!-- =================================================================== -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Padding="20,14,20,10"
-                        Spacing="12">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
+            <Grid Padding="32,16,32,16" ColumnSpacing="40" MaxWidth="820" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                    <Border Width="252" Height="252" CornerRadius="20" Background="#000000"
+                            BorderBrush="#292929" BorderThickness="1" Padding="12">
+                        <Image Source="ms-appx:///Assets/EpicenterDSP-logo.png" Stretch="Uniform"
+                               AutomationProperties.Name="Logo original de EpicenterDSP" />
+                    </Border>
+                    <TextBlock Text="By EpicenterDSP Labs" HorizontalAlignment="Center"
+                               FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryMuted}" />
+                    <TextBlock Text="Reconstruye el grave. Siente la música."
+                               FontSize="11" HorizontalAlignment="Center" Foreground="{StaticResource TextDim}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
 
                 <!-- Primary Identity: BASS RECONSTRUCTION -->
                 <StackPanel HorizontalAlignment="Center" Spacing="2">
-                    <TextBlock Text="BASS RECONSTRUCTION ENGINE"
+                    <TextBlock Text="RECONSTRUCCIÓN DE GRAVES"
                                Style="{StaticResource StudioTechnicalHeaderStyle}"
                                FontSize="11.5"
                                CharacterSpacing="140"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="PATENTED HARMONIC RESTORATION CORE"
+                    <TextBlock Text="Motor armónico · control de intensidad"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                FontSize="9.5"
                                Foreground="{StaticResource TextDim}"
@@ -181,14 +199,15 @@
 
                 <!-- Rotary Knob -->
                 <controls:RotaryKnob x:Name="IntensityKnob"
-                                     Value="{x:Bind ViewModel.Intensity, Mode=TwoWay}"
+                                     Value="{x:Bind ViewModel.Intensity, Mode=OneWay}"
+                                     ValueChanged="OnKnobValueChanged"
                                      IsActive="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
                                      DefaultValue="75"
                                      HorizontalAlignment="Center"
                                      ToolTipService.ToolTip="Intensidad de reconstrucción armónica de bajos (0% a 100%). Arrastre vertical, rueda o Shift para ajuste fino (0.1%)." />
 
                 <!-- Master Power Control Pill (OFF / ON) -->
-                <Border Background="#10131A"
+                <Border Background="#111111"
                         BorderBrush="{StaticResource StudioBorderSubtle}"
                         BorderThickness="1"
                         CornerRadius="8"
@@ -205,7 +224,7 @@
                                 BorderThickness="0"
                                 Background="{x:Bind ViewModel.PowerOffBackground, Mode=OneWay}"
                                 Foreground="{x:Bind ViewModel.PowerOffForeground, Mode=OneWay}"
-                                Command="{x:Bind ViewModel.TogglePowerCommand}"
+                                Click="OnPowerOffClick"
                                 ToolTipService.ToolTip="Bypass de audio: la señal pasa directamente sin procesamiento" />
 
                         <!-- ON Button -->
@@ -217,13 +236,13 @@
                                 BorderThickness="0"
                                 Background="{x:Bind ViewModel.PowerOnBackground, Mode=OneWay}"
                                 Foreground="{x:Bind ViewModel.PowerOnForeground, Mode=OneWay}"
-                                Command="{x:Bind ViewModel.TogglePowerCommand}"
+                                Click="OnPowerOnClick"
                                 ToolTipService.ToolTip="Activar reconstrucción armónica de bajos Epicenter DSP" />
                     </StackPanel>
                 </Border>
 
                 <!-- A/B Comparison Toggle Switch (ORIGINAL / EPICENTER) -->
-                <Border Background="#10131A"
+                <Border Background="#111111"
                         BorderBrush="{StaticResource StudioBorderSubtle}"
                         BorderThickness="1"
                         CornerRadius="8"
@@ -256,7 +275,11 @@
                                 ToolTipService.ToolTip="Monitoreo B: Señal procesada con reconstrucción armónica de bajos" />
                     </StackPanel>
                 </Border>
-            </StackPanel>
+                    <TextBlock Text="0% = bypass directo · rueda o arrastra para ajustar"
+                               FontSize="10" Foreground="{StaticResource TextSecondaryMuted}"
+                               HorizontalAlignment="Center" Margin="0,4,0,0" />
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
 
         <!-- =================================================================== -->
@@ -272,24 +295,26 @@
 
             <!-- Input Meter (Pre-DSP) -->
             <controls:LedMeterBar Grid.Column="0"
-                                  Title="INPUT L/R"
+                                  Title="INPUT · N/A"
                                   PeakDbfs="{x:Bind ViewModel.InputPeakDbfs, Mode=OneWay}"
                                   RmsDbfs="{x:Bind ViewModel.InputRmsDbfs, Mode=OneWay}"
-                                  IsActive="{x:Bind ViewModel.IsEnabled, Mode=OneWay}" />
+                                  IsActive="True"
+                                  IsAvailable="{x:Bind ViewModel.InputMeterAvailable, Mode=OneWay}" />
 
             <!-- Output Meter (Post-DSP / Post-Crossfader) -->
             <controls:LedMeterBar Grid.Column="1"
-                                  Title="OUTPUT L/R"
+                                  Title="OUTPUT · PEAK / RMS"
                                   PeakDbfs="{x:Bind ViewModel.OutputPeakDbfs, Mode=OneWay}"
                                   RmsDbfs="{x:Bind ViewModel.OutputRmsDbfs, Mode=OneWay}"
-                                  IsActive="{x:Bind ViewModel.IsEnabled, Mode=OneWay}" />
+                                  IsActive="True"
+                                  IsAvailable="{x:Bind ViewModel.OutputMeterAvailable, Mode=OneWay}" />
         </Grid>
 
         <!-- =================================================================== -->
         <!-- ROW 2 & 3 OVERLAY: DRAWER (PRESETS, AUDIO SETTINGS, DIAGNOSTICS)    -->
         <!-- =================================================================== -->
         <Border Grid.Row="2" Grid.RowSpan="2"
-                Background="#0D0E12"
+                Background="{StaticResource StudioBackgroundDark}"
                 BorderBrush="{StaticResource StudioBorderSubtle}"
                 BorderThickness="0,1,0,1"
                 Visibility="{x:Bind ViewModel.DrawerVisibility, Mode=OneWay}">
@@ -309,7 +334,7 @@
 
                     <!-- Tab Buttons Group -->
                     <Border Grid.Column="0"
-                            Background="#10131A"
+                            Background="#111111"
                             BorderBrush="{StaticResource StudioBorderSubtle}"
                             BorderThickness="1"
                             CornerRadius="8"
@@ -357,7 +382,7 @@
                     <Button Grid.Column="2"
                             Width="30" Height="30"
                             CornerRadius="15"
-                            Background="#10131A"
+                            Background="#111111"
                             BorderBrush="{StaticResource StudioBorderSubtle}"
                             BorderThickness="1"
                             Padding="0"
@@ -397,10 +422,10 @@
                                     <TextBlock Text="DEFAULT STUDIO" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryHigh}" />
                                     <TextBlock Text="Calibración estándar balanceada para monitoreo de referencia." FontSize="11" Foreground="{StaticResource TextSecondaryMuted}" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
+                                <Border Grid.Column="1" Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
                                     <TextBlock Text="75%" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource EpicenterAmberGold}" />
                                 </Border>
-                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#1E232D" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
+                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#252525" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
                                         Click="OnActivatePreset0Click"
                                         ToolTipService.ToolTip="Activar preset Default Studio (75% Intensidad)" />
                             </Grid>
@@ -422,10 +447,10 @@
                                     <TextBlock Text="GENTLE" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryHigh}" />
                                     <TextBlock Text="Refuerzo sutil moderado para material acústico o monitores de campo cercano." FontSize="11" Foreground="{StaticResource TextSecondaryMuted}" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
+                                <Border Grid.Column="1" Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
                                     <TextBlock Text="45%" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource EpicenterAmberGold}" />
                                 </Border>
-                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#1E232D" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
+                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#252525" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
                                         Click="OnActivatePreset1Click"
                                         ToolTipService.ToolTip="Activar preset Gentle (45% Intensidad)" />
                             </Grid>
@@ -447,10 +472,10 @@
                                     <TextBlock Text="DEEP" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryHigh}" />
                                     <TextBlock Text="Mayor extensión y peso en sub-graves para sistemas con subwoofer dedicado." FontSize="11" Foreground="{StaticResource TextSecondaryMuted}" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
+                                <Border Grid.Column="1" Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
                                     <TextBlock Text="85%" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource EpicenterAmberGold}" />
                                 </Border>
-                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#1E232D" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
+                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#252525" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
                                         Click="OnActivatePreset2Click"
                                         ToolTipService.ToolTip="Activar preset Deep (85% Intensidad)" />
                             </Grid>
@@ -472,10 +497,10 @@
                                     <TextBlock Text="POWER" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryHigh}" />
                                     <TextBlock Text="Máxima reconstrucción armónica para sonido en vivo y master de alto impacto." FontSize="11" Foreground="{StaticResource TextSecondaryMuted}" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
+                                <Border Grid.Column="1" Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
                                     <TextBlock Text="100%" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource EpicenterAmberGold}" />
                                 </Border>
-                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#1E232D" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
+                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#252525" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
                                         Click="OnActivatePreset3Click"
                                         ToolTipService.ToolTip="Activar preset Power (100% Intensidad)" />
                             </Grid>
@@ -497,10 +522,10 @@
                                     <TextBlock Text="CUSTOM" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryHigh}" />
                                     <TextBlock Text="Ajuste manual personalizado del usuario." FontSize="11" Foreground="{StaticResource TextSecondaryMuted}" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
+                                <Border Grid.Column="1" Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="6" Padding="10,4,10,4" VerticalAlignment="Center" Margin="12,0,12,0">
                                     <TextBlock Text="VARIABLE" FontFamily="Cascadia Mono, Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource StudioCyanMetric}" />
                                 </Border>
-                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#1E232D" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
+                                <Button Grid.Column="2" Content="ACTIVAR" FontSize="10.5" FontWeight="SemiBold" CornerRadius="5" Background="#252525" Foreground="{StaticResource TextPrimaryHigh}" VerticalAlignment="Center"
                                         Click="OnActivatePreset4Click"
                                         ToolTipService.ToolTip="Activar preset Custom (Ajuste manual del usuario)" />
                             </Grid>
@@ -712,7 +737,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Technical Audio Pipeline Telemetry -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
                     <TextBlock Text="{x:Bind ViewModel.SampleRateText, Mode=OneWay}" Style="{StaticResource StudioMonospaceValueStyle}" />
                     <TextBlock Text="·" Foreground="{StaticResource TextDim}" />
                     <TextBlock Text="{x:Bind ViewModel.BitDepthText, Mode=OneWay}" Style="{StaticResource StudioMonospaceValueStyle}" />
@@ -729,7 +754,7 @@
                 <!-- Active Endpoint Name & Device Change Notification -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <!-- Temporary Device Change Notification Pill -->
-                    <Border Background="#0E2A2F"
+                    <Border Background="#262626"
                             BorderBrush="{StaticResource StudioCyanMetric}"
                             BorderThickness="1"
                             CornerRadius="4"
@@ -747,6 +772,9 @@
                     <TextBlock Text="{x:Bind ViewModel.ActiveEndpointText, Mode=OneWay}"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                FontSize="10.5"
+                               MaxWidth="240"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTipService.ToolTip="{x:Bind ViewModel.ActiveEndpointText, Mode=OneWay}"
                                Foreground="{StaticResource TextSecondaryMuted}"
                                VerticalAlignment="Center" />
                 </StackPanel>

@@ -58,6 +58,29 @@ target_link_libraries(EpicenterAPO
         advapi32
 )
 
+if(MSVC)
+    # An embedded manifest can call APIs forbidden in protected audiodg.
+    # Disable it for the APO DLL only; normal executables keep their manifests.
+    target_link_options(EpicenterAPO PRIVATE /MANIFEST:NO)
+endif()
+
+# Separate HKR/componentized DLL identity. Keep the legacy target intact.
+add_library(EpicenterAPOComponent SHARED
+    src/EpicenterApo.cpp
+    src/ClassFactory.cpp
+    src/DllMain.cpp
+    src/EpicenterAPOComponent.def
+)
+target_compile_definitions(EpicenterAPOComponent PRIVATE EPICENTER_APO_COMPONENTIZED_BUILD)
+target_include_directories(EpicenterAPOComponent
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/../epicenter-core/include
+)
+target_link_libraries(EpicenterAPOComponent PRIVATE epicenter_core ole32 oleaut32 uuid propsys advapi32)
+if(MSVC)
+    target_link_options(EpicenterAPOComponent PRIVATE /MANIFEST:NO)
+endif()
+
 # 2. APO Manager CLI Tool
 add_executable(apo_manager
     tools/apo_manager.cpp
@@ -92,6 +115,7 @@ add_executable(epicenter_apo_test_suite
     src/ClassFactory.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../epicenter-core/tests/support/AllocCounter.cpp"
 )
+target_compile_definitions(epicenter_apo_test_suite PRIVATE EPICENTER_APO_TEST_ISOLATION)
 target_include_directories(epicenter_apo_test_suite
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -114,6 +138,17 @@ target_link_libraries(epicenter_apo_test_suite
 
 enable_testing()
 add_test(NAME ApoTestSuite COMMAND epicenter_apo_test_suite)
+
+# Run the same isolated contract/algorithm tests with the new COM identity.
+get_target_property(EPICENTER_APO_TEST_SOURCES epicenter_apo_test_suite SOURCES)
+get_target_property(EPICENTER_APO_TEST_INCLUDES epicenter_apo_test_suite INCLUDE_DIRECTORIES)
+add_executable(epicenter_apo_component_test_suite ${EPICENTER_APO_TEST_SOURCES})
+target_compile_definitions(epicenter_apo_component_test_suite PRIVATE
+    EPICENTER_APO_TEST_ISOLATION EPICENTER_APO_COMPONENTIZED_BUILD)
+target_include_directories(epicenter_apo_component_test_suite PRIVATE ${EPICENTER_APO_TEST_INCLUDES})
+target_link_libraries(epicenter_apo_component_test_suite PRIVATE
+    epicenter_core epicenter_legacy_reference ole32 oleaut32 uuid advapi32 propsys)
+add_test(NAME ComponentizedApoTestSuite COMMAND epicenter_apo_component_test_suite)
 
 # 4. Benchmark Executable
 add_executable(apo_benchmark

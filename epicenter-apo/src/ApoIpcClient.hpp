@@ -29,6 +29,13 @@ public:
     bool open(bool createIfMissing = true) {
         if (view_) return true;
 
+#if defined(EPICENTER_APO_TEST_ISOLATION)
+        // Test instances must never impersonate an audiodg APO to a running UI,
+        // or let that UI mutate fixture controls. Production v1 IPC is unchanged.
+        const auto testName = std::wstring(L"Local\\EpicenterDspIpc_Test_") + std::to_wstring(GetCurrentProcessId());
+        return tryOpen(testName.c_str(), createIfMissing);
+#else
+
         // Try Global namespace first (required for Session 0 audiodg.exe <-> user Session 1)
         if (tryOpen(EPICENTER_IPC_SHARED_MEMORY_NAME, createIfMissing)) {
             return true;
@@ -36,6 +43,7 @@ public:
 
         // Fallback to Local namespace (for unit tests running in a single session)
         return tryOpen(EPICENTER_IPC_LOCAL_FALLBACK_NAME, createIfMissing);
+#endif
     }
 
     void close() {

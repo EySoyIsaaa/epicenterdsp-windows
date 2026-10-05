@@ -110,7 +110,7 @@ STDMETHODIMP CEpicenterApo::GetRegistrationProperties(APO_REG_PROPERTIES** ppReg
     props->u32MaxOutputConnections = 1;
     props->u32MaxInstances = 32;
     props->u32NumAPOInterfaces = 1;
-    props->iidAPOInterfaceList[0] = __uuidof(IAudioProcessingObjectRT);
+    props->iidAPOInterfaceList[0] = __uuidof(IAudioProcessingObject);
 
     *ppRegProps = props;
     return S_OK;

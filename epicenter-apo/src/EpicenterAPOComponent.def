@@ -1,0 +1,4 @@
+LIBRARY "EpicenterAPOComponent.dll"
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

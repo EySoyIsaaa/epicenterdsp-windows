@@ -5,7 +5,8 @@ public enum ApoConnectionStatus
     Connecting,
     Active,
     Bypass,
-    NotBound
+    NotBound,
+    Error
 }
 
 public struct ApoTelemetryData

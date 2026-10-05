@@ -1,18 +1,8 @@
 @echo off
 setlocal
-title Epicenter DSP Professional 1.0 - Desactivar APO
-cd /d "%~dp0"
-
-set "SCRIPT_PATH=%~dp0scripts\Unregister-EpicenterApo.ps1"
-
-:: Comprobar si se ejecuta con permisos de Administrador
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [INFO] Solicitando permisos de Administrador (UAC)...
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p = '%SCRIPT_PATH%'; Start-Process powershell.exe -Verb RunAs -ArgumentList ('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', ('\"' + $p + '\"'))"
-    exit /b
-)
-
-:: Si ya fue iniciado como Administrador:
-powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "%SCRIPT_PATH%"
+title Epicenter DSP - Restaurar prueba
+set "EPICENTER_PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if exist "%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe" set "EPICENTER_PS=%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
+"%EPICENTER_PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-ApoInstaller.ps1" -Mode Uninstall
+if errorlevel 1 echo [ERROR] No se confirmo el exito. Revisa el mensaje anterior y conserva el respaldo.
 pause

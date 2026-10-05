@@ -49,7 +49,7 @@ public class DiagnosticsService : IDiagnosticsService
         sb.AppendLine("--------------------------------------------------------------------------------");
         sb.AppendLine("1. APO INTEGRATION & IPC STATUS");
         sb.AppendLine("--------------------------------------------------------------------------------");
-        sb.AppendLine($"APO Connection:      {apoStatus}");
+        sb.AppendLine($"APO Connection:      {apoStatus.ToString().ToUpperInvariant()}");
         sb.AppendLine($"Shared Memory IPC:   {(isIpcConnected ? "CONNECTED" : "DISCONNECTED")}");
         sb.AppendLine($"Shared Memory Map:   Global\\EpicenterDspIpcSharedMemory");
         int? audiodgPid = GetAudiodgProcessId();
@@ -61,10 +61,11 @@ public class DiagnosticsService : IDiagnosticsService
         sb.AppendLine("--------------------------------------------------------------------------------");
         sb.AppendLine("2. AUDIO ENDPOINT & PIPELINE");
         sb.AppendLine("--------------------------------------------------------------------------------");
-        sb.AppendLine($"Endpoint Name:       {endpoint?.Name ?? "Default Render Device"}");
+        sb.AppendLine($"Endpoint Name:       {endpoint?.Name ?? "N/A"}");
         sb.AppendLine($"Endpoint ID:         {endpoint?.Id ?? "N/A"}");
-        sb.AppendLine($"Endpoint Status:     {endpoint?.Status ?? "Active"}");
-        sb.AppendLine($"APO Binding:         {(telemetry.ApoStatus == 1 ? "BOUND & ACTIVE" : (telemetry.ApoStatus == 2 ? "ERROR BYPASS" : "NOT BOUND"))}");
+        sb.AppendLine($"Endpoint Status:     {endpoint?.Status ?? "N/A"}");
+        sb.AppendLine($"Endpoint EFX:        {(endpoint?.IsApoBound == true ? "ASSOCIATED" : "NOT ASSOCIATED")}");
+        sb.AppendLine($"APO Reported State:  {(telemetry.ApoStatus == 1 ? "PREPARED (not proof of current audio flow)" : (telemetry.ApoStatus == 2 ? "ERROR BYPASS" : "NOT BOUND"))}");
         sb.AppendLine();
 
         sb.AppendLine("--------------------------------------------------------------------------------");
@@ -80,7 +81,7 @@ public class DiagnosticsService : IDiagnosticsService
             sb.AppendLine($"Bit Depth:           32-bit Floating Point (IEEE 754)");
             sb.AppendLine($"Channel Count:       {telemetry.ChannelCount} ({(telemetry.ChannelCount == 1 ? "Mono" : "Stereo")})");
             sb.AppendLine($"Buffer Frame Count:  {telemetry.BufferFrameCount} frames");
-            sb.AppendLine($"Quantum Latency:     {latencyMs:F2} ms");
+            sb.AppendLine($"Block Duration:      {latencyMs:F2} ms (not end-to-end latency)");
             sb.AppendLine($"DSP Time per Block:  {telemetry.DspTimeMicroseconds:F1} µs");
             sb.AppendLine($"DSP CPU Load:        {telemetry.DspCpuPercent:F2}%");
             sb.AppendLine($"Peak Level (Output): {telemetry.PeakDbfs:F1} dBFS");
@@ -101,7 +102,7 @@ public class DiagnosticsService : IDiagnosticsService
         sb.AppendLine("--------------------------------------------------------------------------------");
         sb.AppendLine("4. CURRENT DSP CONFIGURATION");
         sb.AppendLine("--------------------------------------------------------------------------------");
-        sb.AppendLine($"Master Power:        {(isEnabled ? "ON (Active)" : "OFF (Bypass)")}");
+        sb.AppendLine($"Master Power:        {(isEnabled ? "ON (requested)" : "OFF (Bypass requested)")}");
         sb.AppendLine($"A/B Switch:          {(isAbEpicenter ? "B (Epicenter DSP)" : "A (Original Audio)")}");
         sb.AppendLine($"Intensity:           {currentIntensity:F1}%");
         sb.AppendLine($"Active Preset:       {presetName}");

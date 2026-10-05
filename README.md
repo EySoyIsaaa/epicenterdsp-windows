@@ -1,123 +1,87 @@
-# Epicenter DSP Professional 1.0 for Windows
+# EpicenterDSP Windows — Professional
 
-**Epicenter DSP Professional** es una solución de procesamiento de audio en tiempo real y reconstrucción armónica de bajos para Windows. Integra el algoritmo de procesamiento de audio directamente en el pipeline del sistema mediante un **Windows Audio Processing Object (EFX APO)**, permitiendo procesar el 100% del audio de salida (YouTube, Spotify, Apple Music, reproductores multimedia, videojuegos y navegadores) sin necesidad de cables de audio virtuales (como VB-CABLE).
+Aplicación nativa WinUI 3 para controlar Epicenter DSP, un motor C++ de
+reconstrucción de graves, mediante un Windows Endpoint Effect APO.
 
----
+![EpicenterDSP](epicenter-ui/src/EpicenterApp/Assets/EpicenterDSP-logo.png)
 
-## Arquitectura del Sistema
+## Estado actual
 
-```text
-               Windows Audio Engine (audiodg.exe)
-                               │
-               ┌───────────────▼───────────────┐
-               │    EpicenterAPO.dll (EFX)     │
-               │  - COM In-Process Server      │
-               │  - Realtime Safe Audio Buffer │
-               │  - Sub-ms Crossfader (A/B)    │
-               └───────────────┬───────────────┘
-                               │ (Direct In-Memory DSP Call)
-               ┌───────────────▼───────────────┐
-               │   EpicenterDSP Core (C++17)   │
-               │  - Zero Allocations Path      │
-               │  - Subharmonic Synthesis      │
-               │  - Dynamic Bass Restoration   │
-               └───────────────┬───────────────┘
-                               │
-                          Audio Output
-                               ▲
-                               │
-                   Shared Memory IPC (SeqLock)
-                               │
-               ┌───────────────┴───────────────┐
-               │  EpicenterApp.exe (WinUI 3)   │
-               │  - Dark Studio Pro Interface  │
-               │  - Interactive Spectrum       │
-               │  - Presets & Telemetry Engine │
-               └───────────────────────────────┘
-```
+Proyecto de desarrollo: **todavía no hay un instalador comercial validado**.
+La interfaz y las pruebas funcionan; la carga del APO en `audiodg.exe` y el audio
+real de la instalación componentizada siguen pendientes de validación.
 
-El diseño separa estrictamente el hilo de tiempo real del procesamiento de interfaz:
-- **Hilo de Audio (Real-Time Path):** Ejecuta dentro de `audiodg.exe` a través de `EpicenterAPO.dll`. Cero bloqueos (`lock-free`), cero llamadas al sistema operativo, cero asignaciones dinámicas de memoria (`no malloc / no new`) y latencia sub-milisegundo.
-- **Canal IPC (Inter-Process Communication):** Memoria compartida sincronizada mediante **SeqLock** con contadores de secuencia atómicos. El APO nunca espera, nunca hace spin-lock y nunca bloquea si la UI está escribiendo.
-- **Interfaz Gráfica (Control Path):** Construida en **WinUI 3 + .NET 9 LTS** con arquitectura MVVM (CommunityToolkit), paleta Dark Studio (`#0F1115`), visualizador espectral interactivo a 60 FPS, gestión de presets de estudio y panel de diagnóstico en tiempo real.
+El paquete de desarrollo se preparó específicamente para una salida digital
+ALC892/SPDIF inspeccionada. No es un instalador universal de tarjetas de sonido.
+La firma local de desarrollo no es una firma Microsoft/WHQL ni es de confianza
+para Windows automáticamente. No se incluyen claves, certificados privados,
+herramientas descargadas ni paquetes firmados en este repositorio.
 
----
+No cambies permisos de endpoints ni desactives protecciones de Windows para
+resolver una conexión. Consulta [la prueba local](PRUEBA_APO.md) y
+[el estado de despliegue](docs/APO_DEPLOYMENT_PLAN.md) antes de instalar.
 
-## Estructura del Repositorio
+## Interfaz
 
-- **`epicenter-core/`**: Biblioteca central del algoritmo DSP en C++17 portable. Aislada con API C ABI estable, suite de pruebas unitarias y verificación de regresión acústica contra implementaciones de referencia.
-- **`epicenter-apo/`**: Implementación de Windows EFX Audio Processing Object (`EpicenterAPO.dll`). Registrador COM, metadata para `audiodg.exe` y gestor de configuración.
-- **`epicenter-ui/`**: Aplicación de escritorio moderna desarrollada con Windows App SDK / WinUI 3 y .NET 9 LTS.
-- **`epicenter-windows/`**: Módulo host WASAPI y pruebas de aislamiento de memoria compartida.
-- **`scripts/`**: Automatización PowerShell para registro/desregistro COM, configuración de endpoints en el Registro de Windows y reinicio seguro del servicio de audio.
-- **`ACTIVAR_EPICENTER_APO.bat`**: Activador con elevación UAC y persistencia de consola.
-- **`DESACTIVAR_EPICENTER_APO.bat`**: Restaurador del sistema de audio a su configuración original de fábrica.
-- **`BUILD_ALL.bat`**: Script de compilación integral para Core, APO y UI.
+- Logo e icono EpicenterDSP originales; negro, gris y rojo.
+- Ventana centrada y label “By EpicenterDSP Labs”.
+- Perilla 0–100% con arrastre, rueda, ajuste fino con Shift y animación continua.
+  0% solicita bypass; la animación visual no retrasa el envío al APO.
+- ON/OFF, escucha A/original y B/Epicenter, presets y diagnóstico.
+- Medición PEAK/RMS de salida cuando existe telemetría válida. Entrada N/A:
+  el contrato IPC actual no proporciona medición pre-DSP.
+- Reconexión con reenvío de los últimos controles y estados explícitos de motor.
+- Ajustes guardados cuando termina el movimiento y al cerrar la ventana.
 
----
+## Arquitectura
 
-## Parámetros del Motor DSP
+`WinUI 3 → servicios/IPC SeqLock → EFX APO → EpicenterDSP Core C++17`.
 
-| Parámetro | Rango | Descripción |
-|---|---|---|
-| **Intensity** | 0.0 - 1.0 | Cantidad de señal sintetizada y reconstrucción armónica inyectada en la mezcla. |
-| **Frequency Sweep** | 27 Hz - 63 Hz | Frecuencia de sintonización central para la reconstrucción de graves profundos. |
-| **Bandwidth** | 0.2 - 2.0 oct | Ancho de banda de captura del filtro subarmónico. |
-| **Bass Boost** | 0.0 - 12.0 dB | Realce post-reconstrucción dinámico. |
-| **Low Cut** | 15 Hz - 40 Hz | Filtro pasa-altos de protección para transductores contra excursión excesiva. |
-| **Harmonics Mode** | Even / Odd / Mixed | Carácter tímbrico de los armónicos generados. |
-| **Bypass (A/B)** | On / Off | Conmutación instantánea libre de clicks mediante crossfader logarítmico sub-milisegundo. |
+C# controla y monitorea; no procesa audio. El Core y el contrato IPC de
+producción se conservaron. El A/B utiliza un crossfade lineal de 8 ms.
 
----
+El objetivo APO cubre audio del pipeline compartido de Windows en una salida
+vinculada. WASAPI Exclusive, ASIO y passthrough comprimido pueden evitar ese
+procesamiento; no se promete cobertura del 100% del audio.
 
-## Requisitos de Desarrollo
+## Compilar y verificar
 
-- **Sistema Operativo:** Windows 10 (versión 1809 o superior) o Windows 11 (x64).
-- **Compilador C++:** Visual Studio 2022 con la carga de trabajo *Desarrollo para el escritorio con C++* (MSVC v143).
-- **CMake:** Versión 3.20 o superior.
-- **.NET SDK:** .NET 9.0 SDK o superior.
-- **Windows App SDK:** Soporte para WinUI 3 (incluido en las dependencias NuGet del proyecto).
-
----
-
-## Compilación
-
-Para compilar todo el proyecto (Core C++, Windows APO y WinUI 3 UI) en modo Release:
+Entorno local verificado: Windows 11 x64, Visual Studio 2022/MSVC v143,
+Windows SDK, CMake 3.20+ y .NET SDK 9. Las dependencias WinUI se restauran
+desde las versiones fijadas en el proyecto. .NET 9 no es LTS; la migración al
+runtime LTS queda pendiente antes de una distribución comercial.
 
 ```cmd
 BUILD_ALL.bat
 ```
 
-O paso a paso de forma manual:
+Compila x64 Release y ejecuta las pruebas, **sin instalar ni cambiar Windows**.
+La interfaz queda en:
 
-```cmd
-:: 1. Compilar Core DSP
-cmake -B epicenter-core/build -S epicenter-core -DCMAKE_BUILD_TYPE=Release
-cmake --build epicenter-core/build --config Release
-
-:: 2. Compilar Windows APO
-cmake -B epicenter-apo/build -S epicenter-apo -DCMAKE_BUILD_TYPE=Release
-cmake --build epicenter-apo/build --config Release
-
-:: 3. Compilar Interfaz WinUI 3
-dotnet build epicenter-ui/EpicenterUI.sln -c Release
+```text
+dist/EpicenterDSP Windows Actualizado/EpicenterDSP Windows.exe
 ```
 
----
+Conserva toda esa carpeta: la compilación actual no es un EXE único portable.
+El EXE de `epicenter-windows/dist` corresponde al prototipo legacy, no a esta UI.
 
-## Uso y Pruebas en Tiempo Real
+Última validación local: Core 17/17, APO legacy 16/16, APO componentizado 16/16
+y UI/IPC/servicios 29/29: **78 pruebas aprobadas**.
+Estas pruebas no sustituyen una prueba de instalación y audio real.
 
-### Activar el sistema:
-1. Haz doble clic en **`ACTIVAR_EPICENTER_APO.bat`** (acepta la solicitud de UAC de Windows).
-2. El script vinculará automáticamente el APO a los dispositivos de salida activos y abrirá la interfaz de control.
-3. Reproduce cualquier audio en YouTube, Spotify o tu reproductor habitual.
-4. Ajusta los controles de **Intensity** y **Sweep** en la aplicación y comprueba la reconstrucción de graves en tiempo real.
+## Estructura
 
-### Desactivar y restaurar Windows:
-1. Haz doble clic en **`DESACTIVAR_EPICENTER_APO.bat`**.
-2. El script desvinculará el APO, restaurará los efectos de audio originales del sistema y reiniciará el servicio de audio (`audiosrv`).
+- `epicenter-core/`: motor portable y regresión contra el legacy.
+- `epicenter-apo/`: APO legacy, build componentizada y pruebas aisladas.
+- `epicenter-ui/`: interfaz WinUI 3 y servicios.
+- `epicenter-windows/`: prototipo histórico WASAPI/VB-CABLE.
+- `scripts/`: compilación, verificaciones y preparación offline de paquetes.
+- `docs/`: investigación y límites de despliegue.
 
----
+Los activadores legacy se conservan para desarrollo/restauración con respaldo,
+pero Windows rechazó el método de escritura directa en el PC de prueba.
+No son el instalador componentizado nuevo ni restauran una configuración
+“de fábrica”: únicamente pueden restaurar valores previamente respaldados.
 
 ## Licencia
 

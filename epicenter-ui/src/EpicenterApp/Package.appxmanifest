@@ -17,8 +17,8 @@
   <mp:PhoneIdentity PhoneProductId="3BA3AAF0-9988-4CA7-BDD0-FA438FFCAA2F" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>EpicenterApp</DisplayName>
-    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <DisplayName>EpicenterDSP Windows</DisplayName>
+    <PublisherDisplayName>EpicenterDSP Labs</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <uap10:PackageIntegrity>
       <uap10:Content Enforcement="on"/>
@@ -39,8 +39,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="EpicenterApp"
-        Description="EpicenterApp"
+        DisplayName="EpicenterDSP Windows"
+        Description="Reconstrucción de graves en tiempo real — By EpicenterDSP Labs"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

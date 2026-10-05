@@ -21,14 +21,14 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock x:Name="TitleTextBlock"
-                           Text="OUTPUT L/R"
+                           Text="LEVELS"
                            Style="{StaticResource StudioTechnicalHeaderStyle}"
                            VerticalAlignment="Center" />
 
                 <!-- Digital Peak Readout -->
                 <TextBlock x:Name="ReadoutTextBlock"
                            Grid.Column="1"
-                           Text="-12.4 dB"
+                           Text="N/A"
                            FontFamily="Cascadia Mono, Consolas, Segoe UI Mono"
                            FontSize="11"
                            FontWeight="SemiBold"
@@ -57,21 +57,28 @@
                 </Border>
             </Grid>
 
-            <!-- Channel L Meter Bar -->
-            <Grid Grid.Row="1" Height="10">
+            <!-- Aggregate sample peak, not a fabricated left-channel measurement. -->
+            <Grid Grid.Row="1" Height="12" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="PEAK" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8"
+                           VerticalAlignment="Center" />
+                <Grid x:Name="PeakRail" Grid.Column="1" Height="10">
                 <!-- Background Rail -->
-                <Border Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
+                <Border Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
 
-                <!-- Active RMS Fill -->
-                <Border x:Name="LeftRmsBar"
+                <!-- Current peak fill -->
+                <Border x:Name="PeakBar"
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="2">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#0891B2" Offset="0.0" />
-                            <GradientStop Color="#06B6D4" Offset="0.75" />
-                            <GradientStop Color="#F59E0B" Offset="0.95" />
+                            <GradientStop Color="#696969" Offset="0.0" />
+                            <GradientStop Color="#A5A5A5" Offset="0.75" />
+                            <GradientStop Color="#FF0026" Offset="0.95" />
                             <GradientStop Color="#EF4444" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
@@ -79,44 +86,46 @@
 
                 <!-- Peak Hold Indicator -->
                 <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Border x:Name="LeftPeakNeedle"
+                    <Border x:Name="PeakNeedle"
                             Width="2" Height="10"
                             Background="#F8FAFC"
                             Canvas.Left="0" />
                 </Canvas>
+                </Grid>
             </Grid>
 
-            <!-- Channel R Meter Bar -->
-            <Grid Grid.Row="2" Height="10">
+            <!-- Aggregate RMS is a separate metric, not a duplicate right channel. -->
+            <Grid Grid.Row="2" Height="12" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="RMS" Style="{StaticResource StudioMonospaceValueStyle}" FontSize="8"
+                           VerticalAlignment="Center" />
+                <Grid x:Name="RmsRail" Grid.Column="1" Height="10">
                 <!-- Background Rail -->
-                <Border Background="#10131A" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
+                <Border Background="#111111" BorderBrush="{StaticResource StudioBorderSubtle}" BorderThickness="1" CornerRadius="2" />
 
                 <!-- Active RMS Fill -->
-                <Border x:Name="RightRmsBar"
+                <Border x:Name="RmsBar"
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="2">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#0891B2" Offset="0.0" />
-                            <GradientStop Color="#06B6D4" Offset="0.75" />
-                            <GradientStop Color="#F59E0B" Offset="0.95" />
+                            <GradientStop Color="#696969" Offset="0.0" />
+                            <GradientStop Color="#A5A5A5" Offset="0.75" />
+                            <GradientStop Color="#FF0026" Offset="0.95" />
                             <GradientStop Color="#EF4444" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
 
-                <!-- Peak Hold Indicator -->
-                <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Border x:Name="RightPeakNeedle"
-                            Width="2" Height="10"
-                            Background="#F8FAFC"
-                            Canvas.Left="0" />
-                </Canvas>
+                </Grid>
             </Grid>
 
             <!-- Decibel Scale Ruler -->
-            <Grid Grid.Row="3" Margin="0,1,0,0">
+            <Grid Grid.Row="3" Margin="40,1,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />

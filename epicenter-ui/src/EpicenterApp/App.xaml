@@ -10,24 +10,25 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Studio Palette Tokens (Dark Studio / Professional Audio) -->
-            <Color x:Key="StudioBackgroundDarkColor">#0D0E12</Color>
-            <Color x:Key="StudioSurfaceCardColor">#14171F</Color>
-            <Color x:Key="StudioSurfaceCardHoverColor">#1A1E29</Color>
-            <Color x:Key="StudioBorderSubtleColor">#232733</Color>
+            <!-- Original EpicenterDSP identity: black, speaker gray and signal red. -->
+            <Color x:Key="StudioBackgroundDarkColor">#090909</Color>
+            <Color x:Key="StudioSurfaceCardColor">#151515</Color>
+            <Color x:Key="StudioSurfaceCardHoverColor">#202020</Color>
+            <Color x:Key="StudioBorderSubtleColor">#2E2E2E</Color>
 
-            <!-- Brand Identity (Epicenter Amber Gold) -->
-            <Color x:Key="EpicenterAmberGoldColor">#F59E0B</Color>
-            <Color x:Key="AmberGlowSoftColor">#4D3A14</Color>
-            <Color x:Key="AmberInactiveColor">#332711</Color>
+            <!-- Preserve existing resource names for controls; use the supplied logo's red. -->
+            <Color x:Key="EpicenterAmberGoldColor">#FF0026</Color>
+            <Color x:Key="AmberGlowSoftColor">#45131B</Color>
+            <Color x:Key="AmberInactiveColor">#281016</Color>
+            <Color x:Key="SystemAccentColor">#FF0026</Color>
 
-            <!-- Technical & Measurement Language (Cyan) -->
-            <Color x:Key="StudioCyanMetricColor">#06B6D4</Color>
+            <!-- Measurements use neutral silver so only the primary action carries red. -->
+            <Color x:Key="StudioCyanMetricColor">#B8B8B8</Color>
 
             <!-- Text Hierarchies -->
-            <Color x:Key="TextPrimaryHighColor">#F8FAFC</Color>
-            <Color x:Key="TextSecondaryMutedColor">#94A3B8</Color>
-            <Color x:Key="TextDimColor">#5C6270</Color>
+            <Color x:Key="TextPrimaryHighColor">#F7F7F7</Color>
+            <Color x:Key="TextSecondaryMutedColor">#A8A8A8</Color>
+            <Color x:Key="TextDimColor">#777777</Color>
 
             <!-- Status Alerts -->
             <Color x:Key="StatusGreenOkColor">#10B981</Color>

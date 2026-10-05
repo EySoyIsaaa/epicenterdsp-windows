@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EpicenterApp.Models;
@@ -16,12 +17,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IAudioEndpointService _endpointService;
     private readonly IDiagnosticsService _diagnosticsService;
     private readonly DispatcherQueueTimer? _telemetryTimer;
+    private readonly DispatcherQueue? _dispatcher;
 
     private uint _lastHeartbeat;
     private int _staleCount;
     private int _tickCount;
     private ApoTelemetryData _latestTelemetry;
     private bool _isAdjustingProgrammatically;
+    private bool _endpointIsBound;
+    private UserSettings? _pendingSettingsSave;
+    private long _settingsChangedAt;
 
     [ObservableProperty]
     private double _intensity = 75.0;
@@ -57,10 +62,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _sampleRateText = "N/A";
 
     [ObservableProperty]
-    private string _bitDepthText = "32-bit Float";
+    private string _bitDepthText = "N/A";
 
     [ObservableProperty]
-    private string _channelsText = "Stereo";
+    private string _channelsText = "N/A";
 
     [ObservableProperty]
     private string _bufferFramesText = "N/A";
@@ -69,16 +74,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _latencyText = "N/A";
 
     [ObservableProperty]
-    private string _dspCpuText = "0.0% CPU";
+    private string _dspCpuText = "N/A CPU";
 
     [ObservableProperty]
-    private string _activeEndpointText = "Default Render Device";
+    private string _activeEndpointText = "Salida no disponible";
 
     // Device change notification & Error banner state
     [ObservableProperty]
     private string _deviceChangeNotificationText = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ListenStatusText))]
+    [NotifyPropertyChangedFor(nameof(OutputMeterAvailable))]
     private bool _isAudioEngineUnavailable;
 
     [ObservableProperty]
@@ -93,10 +100,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     // Audio Settings Drawer Properties
     [ObservableProperty]
-    private string _currentEndpointName = "Default Render Device";
+    private string _currentEndpointName = "Salida no disponible";
 
     [ObservableProperty]
-    private string _currentEndpointStatus = "ACTIVE";
+    private string _currentEndpointStatus = "N/A";
 
     [ObservableProperty]
     private string _apoBoundStatusText = "NOT BOUND";
@@ -105,10 +112,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _formatSampleRate = "N/A";
 
     [ObservableProperty]
-    private string _formatBitDepth = "32-bit Float";
+    private string _formatBitDepth = "N/A";
 
     [ObservableProperty]
-    private string _formatChannels = "Stereo";
+    private string _formatChannels = "N/A";
 
     [ObservableProperty]
     private string _formatBufferFrames = "N/A";
@@ -130,11 +137,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _exportNotificationText = "";
 
     // Visual Presentation Brushes for Buttons & Badges (Clean x:Bind)
-    private static readonly SolidColorBrush BrushAmber = new(Microsoft.UI.ColorHelper.FromArgb(255, 245, 158, 11));
-    private static readonly SolidColorBrush BrushCyan = new(Microsoft.UI.ColorHelper.FromArgb(255, 6, 182, 212));
+    private static readonly SolidColorBrush BrushAmber = new(Microsoft.UI.ColorHelper.FromArgb(255, 255, 0, 38));
+    private static readonly SolidColorBrush BrushCyan = new(Microsoft.UI.ColorHelper.FromArgb(255, 165, 165, 165));
     private static readonly SolidColorBrush BrushGreen = new(Microsoft.UI.ColorHelper.FromArgb(255, 16, 185, 129));
     private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.ColorHelper.FromArgb(255, 245, 158, 11));
-    private static readonly SolidColorBrush BrushCardDark = new(Microsoft.UI.ColorHelper.FromArgb(255, 30, 35, 45));
+    private static readonly SolidColorBrush BrushCardDark = new(Microsoft.UI.ColorHelper.FromArgb(255, 29, 29, 31));
     private static readonly SolidColorBrush BrushTransparent = new(Microsoft.UI.ColorHelper.FromArgb(0, 0, 0, 0));
     private static readonly SolidColorBrush BrushTextMuted = new(Microsoft.UI.ColorHelper.FromArgb(255, 100, 116, 139));
     private static readonly SolidColorBrush BrushTextHigh = new(Microsoft.UI.ColorHelper.FromArgb(255, 248, 250, 252));
@@ -145,21 +152,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ApoConnectionStatus.Active => BrushGreen,
         ApoConnectionStatus.Bypass => BrushTextMuted,
         ApoConnectionStatus.NotBound => BrushOrange,
+        ApoConnectionStatus.Error => BrushAmber,
         _ => BrushCyan
     };
 
     public Brush PowerOffBackground => !IsEnabled ? BrushCardDark : BrushTransparent;
     public Brush PowerOffForeground => !IsEnabled ? BrushTextHigh : BrushTextMuted;
     public Brush PowerOnBackground => IsEnabled ? BrushAmber : BrushTransparent;
-    public Brush PowerOnForeground => IsEnabled ? BrushBlack : BrushTextMuted;
+    public Brush PowerOnForeground => IsEnabled ? BrushTextHigh : BrushTextMuted;
 
     public Brush AbOriginalBackground => !IsAbEpicenter ? BrushCyan : BrushTransparent;
     public Brush AbOriginalForeground => !IsAbEpicenter ? BrushBlack : BrushTextMuted;
     public Brush AbEpicenterBackground => IsAbEpicenter ? BrushAmber : BrushTransparent;
-    public Brush AbEpicenterForeground => IsAbEpicenter ? BrushBlack : BrushTextMuted;
+    public Brush AbEpicenterForeground => IsAbEpicenter ? BrushTextHigh : BrushTextMuted;
+    public bool InputMeterAvailable => false; // Frozen v1 IPC has no pre-DSP measurement.
+    public bool OutputMeterAvailable => IsEnabled && IsAbEpicenter && Intensity > 0 &&
+        _latestTelemetry.SampleRate > 0 && _latestTelemetry.ApoStatus == 1 && !IsAudioEngineUnavailable;
 
     // Computed presentation texts
-    public string ListenStatusText => (IsEnabled && IsAbEpicenter) ? "LISTEN: B — EPICENTER" : "LISTEN: A — ORIGINAL";
+    public string ListenStatusText => IsAudioEngineUnavailable ? "LISTEN: NO CONFIRMADO" :
+        ((IsEnabled && IsAbEpicenter && Intensity > 0) ? "LISTEN: B — EPICENTER" : "LISTEN: A — ORIGINAL");
     public string DspPowerStatusText => IsEnabled ? "DSP ENGINE: ON" : "DSP ENGINE: OFF";
 
     // Drawer Visibility & Tab Styles
@@ -188,6 +200,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IAudioEndpointService? endpoints = null,
         IDiagnosticsService? diagnostics = null)
     {
+        _dispatcher = DispatcherQueue.GetForCurrentThread();
         _ipc = ipc ?? new ApoIpcBridgeService();
         _settingsService = settings ?? new SettingsStorageService();
         _endpointService = endpoints ?? new WindowsAudioEndpointService();
@@ -196,7 +209,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // 1. Load user settings
         var savedSettings = _settingsService.LoadSettings();
         _isAdjustingProgrammatically = true;
-        _intensity = savedSettings.Intensity;
+        _intensity = double.IsFinite(savedSettings.Intensity) ? Math.Clamp(savedSettings.Intensity, 0, 100) : 0;
         _isEnabled = savedSettings.IsEnabled;
         _isAbEpicenter = savedSettings.IsAbEpicenter;
         _selectedPreset = (savedSettings.PresetId >= 0 && savedSettings.PresetId < PresetItem.BuiltInPresets.Length)
@@ -216,12 +229,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             CurrentEndpointName = defaultEndpoint.Name;
             ActiveEndpointText = defaultEndpoint.Name;
+            CurrentEndpointStatus = defaultEndpoint.Status;
+            _endpointIsBound = defaultEndpoint.IsApoBound;
         }
         _endpointService.DefaultDeviceChanged += OnDefaultDeviceChanged;
 
         // 3. Connect to Shared Memory IPC and push parameters
         _ipc.Connect();
         PushParametersToIpc();
+        if (_ipc.TryReadTelemetry(out var initialTelemetry)) _latestTelemetry = initialTelemetry;
         UpdateStatusBadge();
 
         // 4. Query initial audiodg process ID
@@ -240,16 +256,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void OnDefaultDeviceChanged(object? sender, EventArgs e)
     {
+        if (_dispatcher != null && !_dispatcher.HasThreadAccess)
+        {
+            _dispatcher.TryEnqueue(() => OnDefaultDeviceChanged(sender, e));
+            return;
+        }
+        _endpointService.Refresh();
         var defaultEndpoint = _endpointService.GetDefaultRenderEndpoint();
+        _endpointIsBound = defaultEndpoint?.IsApoBound == true;
         if (defaultEndpoint != null)
         {
             CurrentEndpointName = defaultEndpoint.Name;
             ActiveEndpointText = defaultEndpoint.Name;
+            CurrentEndpointStatus = defaultEndpoint.Status;
             DeviceChangeNotificationText = $"OUTPUT CHANGED: {defaultEndpoint.Name}";
             OnPropertyChanged(nameof(DeviceChangeNotificationVisibility));
 
             // Auto-clear notification after 3 seconds
-            var dispatcher = DispatcherQueue.GetForCurrentThread();
+            var dispatcher = _dispatcher;
             if (dispatcher != null)
             {
                 var timer = dispatcher.CreateTimer();
@@ -265,12 +289,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         // Reconnect IPC on device transition
+        _ipc.Disconnect();
         _ipc.Connect();
+        _latestTelemetry = default;
+        _lastHeartbeat = 0;
+        _staleCount = 0;
         PushParametersToIpc();
+        UpdateStatusBadge();
     }
 
     partial void OnIntensityChanged(double value)
     {
+        var safe = double.IsFinite(value) ? Math.Clamp(value, 0, 100) : 0;
+        if (safe != value) { Intensity = safe; return; }
         if (!_isAdjustingProgrammatically)
         {
             // Requirement #10: If user manually changes intensity and value differs from selected preset,
@@ -284,6 +315,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         PushParametersToIpc();
+        UpdateStatusBadge();
         SaveCurrentSettings();
     }
 
@@ -372,17 +404,37 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void SaveCurrentSettings()
     {
-        _settingsService.SaveSettings(new UserSettings
+        var snapshot = new UserSettings
         {
             Intensity = Intensity,
             PresetId = SelectedPreset.Id,
             IsEnabled = IsEnabled,
             IsAbEpicenter = IsAbEpicenter
-        });
+        };
+        if (_dispatcher == null)
+        {
+            // Headless consumers keep synchronous persistence semantics.
+            _settingsService.SaveSettings(snapshot);
+            return;
+        }
+        // The DSP parameter was already sent immediately. Only disk persistence
+        // waits until input settles, so rapid pointer events cannot stall the UI.
+        _pendingSettingsSave = snapshot;
+        _settingsChangedAt = Stopwatch.GetTimestamp();
+    }
+
+    private void FlushPendingSettings(bool force = false)
+    {
+        if (_pendingSettingsSave == null ||
+            (!force && Stopwatch.GetElapsedTime(_settingsChangedAt).TotalMilliseconds < 400)) return;
+        var snapshot = _pendingSettingsSave;
+        _pendingSettingsSave = null;
+        _settingsService.SaveSettings(snapshot);
     }
 
     private void OnTelemetryTimerTick(DispatcherQueueTimer sender, object args)
     {
+        FlushPendingSettings();
         _tickCount++;
 
         // Refresh audiodg PID every ~1 second (30 ticks)
@@ -413,8 +465,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 double khz = telem.SampleRate / 1000.0;
                 SampleRateText = (khz == Math.Floor(khz)) ? $"{khz:F0} kHz" : $"{khz:F1} kHz";
                 FormatSampleRate = $"{telem.SampleRate:N0} Hz";
-                ChannelsText = telem.ChannelCount == 1 ? "Mono" : "Stereo";
+                ChannelsText = telem.ChannelCount switch { 1 => "Mono", 2 => "Stereo", _ => $"{telem.ChannelCount} channels" };
                 FormatChannels = ChannelsText;
+                BitDepthText = FormatBitDepth = "32-bit Float";
                 BufferFramesText = $"{telem.BufferFrameCount} FRAMES";
                 FormatBufferFrames = $"{telem.BufferFrameCount} frames";
 
@@ -423,12 +476,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 FormatLatencyMs = $"{latMs:F2} ms";
 
                 ApoBoundStatusText = telem.ApoStatus == 1 ? "BOUND" : (telem.ApoStatus == 2 ? "ERROR BYPASS" : "NOT BOUND");
-                DspStatusText = IsEnabled ? "RUNNING" : "BYPASS";
+                DspStatusText = telem.ApoStatus == 1 && IsEnabled && IsAbEpicenter && Intensity > 0 ? "RUNNING" : "BYPASS";
                 IsAudioEngineUnavailable = false;
                 OnPropertyChanged(nameof(AudioEngineUnavailableVisibility));
             }
             else
             {
+                BitDepthText = FormatBitDepth = ChannelsText = FormatChannels = "N/A";
                 SampleRateText = "N/A";
                 BufferFramesText = "N/A";
                 LatencyText = "N/A";
@@ -440,31 +494,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
             }
 
             double cpu = telem.DspCpuPercent;
-            DspCpuText = $"{cpu:F1}% CPU";
+            DspCpuText = telem.SampleRate > 0 && telem.BufferFrameCount > 0 && double.IsFinite(cpu) ? $"{cpu:F1}% CPU" : "N/A CPU";
 
             // Update Meters
             OutputPeakDbfs = telem.PeakDbfs;
             OutputRmsDbfs = telem.RmsDbfs;
 
-            if (!IsEnabled || !IsAbEpicenter)
-            {
-                InputPeakDbfs = telem.PeakDbfs;
-                InputRmsDbfs = telem.RmsDbfs;
-            }
-            else
-            {
-                InputPeakDbfs = Math.Max(-96.0, telem.PeakDbfs - (Intensity * 0.04));
-                InputRmsDbfs = Math.Max(-96.0, telem.RmsDbfs - (Intensity * 0.03));
-            }
+            // Do not fabricate input measurements from intensity or output.
+            InputPeakDbfs = InputRmsDbfs = -96;
 
-            if (_staleCount > 30) // ~1 second without heartbeat
+            if (_staleCount > 90) // Silence can suspend APOProcess; not necessarily an error.
             {
                 ConnectionStatus = ApoConnectionStatus.Connecting;
-                StatusBadgeText = "◌ RECONNECTING...";
-                ApoBoundStatusText = "NOT BOUND";
+                StatusBadgeText = "○ SIN FLUJO";
+                ApoBoundStatusText = "IPC OPEN · SIN FLUJO";
                 DspStatusText = "IDLE";
                 IsAudioEngineUnavailable = true;
-                AudioEngineUnavailableMessage = "AUDIO ENGINE UNAVAILABLE · Epicenter DSP is reconnecting...";
+                AudioEngineUnavailableMessage = "Sin flujo del APO. Reproduce audio en la salida vinculada y vuelve a conectar si es necesario.";
                 OnPropertyChanged(nameof(AudioEngineUnavailableVisibility));
                 _ipc.Connect();
             }
@@ -486,12 +532,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 FormatSampleRate = "N/A";
                 FormatBufferFrames = "N/A";
                 FormatLatencyMs = "N/A";
+                SampleRateText = BufferFramesText = LatencyText = "N/A";
+                DspCpuText = "N/A CPU";
+                _latestTelemetry = default;
                 IsAudioEngineUnavailable = true;
-                AudioEngineUnavailableMessage = "AUDIO ENGINE UNAVAILABLE · Endpoint not bound to APO";
+                AudioEngineUnavailableMessage = _ipc.ConnectionError ?? "Windows no ha cargado el APO en la salida actual.";
+                BitDepthText = FormatBitDepth = ChannelsText = FormatChannels = "N/A";
                 OnPropertyChanged(nameof(AudioEngineUnavailableVisibility));
                 _ipc.Connect();
             }
         }
+        OnPropertyChanged(nameof(OutputMeterAvailable));
     }
 
     private void UpdateAudiodgPid()
@@ -502,12 +553,33 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void UpdateStatusBadge()
     {
-        if (!_ipc.IsConnected)
+        if (!_endpointIsBound)
+        {
+            ConnectionStatus = ApoConnectionStatus.NotBound;
+            StatusBadgeText = "⚠ NOT BOUND";
+            IsAudioEngineUnavailable = true;
+            AudioEngineUnavailableMessage = "La salida actual no tiene EpicenterAPO vinculado. Reintentar no instala el APO.";
+        }
+        else if (!_ipc.IsConnected)
         {
             ConnectionStatus = ApoConnectionStatus.Connecting;
             StatusBadgeText = "◌ CONNECTING...";
             IsAudioEngineUnavailable = true;
-            AudioEngineUnavailableMessage = "AUDIO ENGINE UNAVAILABLE · Epicenter DSP is reconnecting...";
+            AudioEngineUnavailableMessage = _ipc.ConnectionError ?? "Windows no ha cargado EpicenterAPO en la salida actual.";
+        }
+        else if (_latestTelemetry.ApoStatus == 2)
+        {
+            ConnectionStatus = ApoConnectionStatus.Error;
+            StatusBadgeText = "⚠ ERROR · BYPASS";
+            IsAudioEngineUnavailable = true;
+            AudioEngineUnavailableMessage = "El APO informó un error y mantiene la señal en bypass.";
+        }
+        else if (_latestTelemetry.SampleRate == 0 || _latestTelemetry.ApoStatus != 1 || _staleCount > 90)
+        {
+            ConnectionStatus = ApoConnectionStatus.Connecting;
+            StatusBadgeText = "○ SIN FLUJO";
+            IsAudioEngineUnavailable = true;
+            AudioEngineUnavailableMessage = "IPC abierto, sin procesamiento confirmado. Reproduce audio en la salida vinculada.";
         }
         else if (!IsEnabled)
         {
@@ -515,10 +587,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
             StatusBadgeText = "○ BYPASS";
             IsAudioEngineUnavailable = false;
         }
-        else if (!IsAbEpicenter)
+        else if (!IsAbEpicenter || Intensity <= 0)
         {
             ConnectionStatus = ApoConnectionStatus.Bypass;
-            StatusBadgeText = "A ORIGINAL";
+            StatusBadgeText = Intensity <= 0 ? "○ BYPASS · 0%" : "A ORIGINAL";
             IsAudioEngineUnavailable = false;
         }
         else
@@ -531,6 +603,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ListenStatusText));
         OnPropertyChanged(nameof(DspPowerStatusText));
         OnPropertyChanged(nameof(AudioEngineUnavailableVisibility));
+        OnPropertyChanged(nameof(OutputMeterAvailable));
     }
 
     [RelayCommand]
@@ -609,9 +682,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         ConnectionStatus = ApoConnectionStatus.Connecting;
         StatusBadgeText = "◌ CONNECTING...";
+        _ipc.Disconnect();
         _ipc.Connect();
+        _lastHeartbeat = 0;
+        _staleCount = 0;
+        _latestTelemetry = default;
+        OnPropertyChanged(nameof(OutputMeterAvailable));
+        _endpointService.Refresh();
         PushParametersToIpc();
         var def = _endpointService.GetDefaultRenderEndpoint();
+        _endpointIsBound = def?.IsApoBound == true;
         if (def != null)
         {
             CurrentEndpointName = def.Name;
@@ -649,6 +729,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _telemetryTimer?.Stop();
+        FlushPendingSettings(force: true);
+        if (_ipc.IsConnected) _ipc.SetParameters(false, 0, 0);
         _endpointService.DefaultDeviceChanged -= OnDefaultDeviceChanged;
         _endpointService.Dispose();
         _ipc.Dispose();

@@ -508,16 +508,92 @@ public class IpcAndViewModelTests
         Assert.AreEqual("0.1", Controls.RotaryKnob.FormatValue(0.12));
     }
 
+    [TestMethod]
+    public void ZeroIntensity_ReportsDirectBypass_AndSanitizesNonFiniteInput()
+    {
+        var ipc = new MockIpcService();
+        using var vm = new MainViewModel(ipc, new MockSettingsService(), new MockEndpointService(), new DiagnosticsService());
+        vm.Intensity = 0;
+        Assert.AreEqual(ApoConnectionStatus.Bypass, vm.ConnectionStatus);
+        Assert.AreEqual("○ BYPASS · 0%", vm.StatusBadgeText);
+        Assert.AreEqual("LISTEN: A — ORIGINAL", vm.ListenStatusText);
+        Assert.IsFalse(vm.OutputMeterAvailable);
+        Assert.AreEqual(0f, ipc.LastIntensity);
+        vm.Intensity = double.NaN;
+        Assert.AreEqual(0.0, vm.Intensity);
+        vm.Intensity = double.PositiveInfinity;
+        Assert.AreEqual(0.0, vm.Intensity);
+    }
+
+    [TestMethod]
+    public void UnboundEndpoint_CannotReportActive_EvenWithOpenIpc()
+    {
+        using var vm = new MainViewModel(new MockIpcService(), new MockSettingsService(),
+            new MockEndpointService { IsApoBound = false }, new DiagnosticsService());
+        Assert.AreEqual(ApoConnectionStatus.NotBound, vm.ConnectionStatus);
+        Assert.IsTrue(vm.IsAudioEngineUnavailable);
+        Assert.IsFalse(vm.OutputMeterAvailable);
+    }
+
+    [TestMethod]
+    public void OpenIpc_WithoutPreparedApo_CannotReportActive()
+    {
+        using var vm = new MainViewModel(new MockIpcService { TelemetryAvailable = false },
+            new MockSettingsService(), new MockEndpointService(), new DiagnosticsService());
+        Assert.AreEqual(ApoConnectionStatus.Connecting, vm.ConnectionStatus);
+        Assert.IsTrue(vm.IsAudioEngineUnavailable);
+        Assert.AreEqual("N/A CPU", vm.DspCpuText);
+    }
+
+    [TestMethod]
+    public void ApoError_ReportsErrorBypass_NotActive()
+    {
+        using var vm = new MainViewModel(new MockIpcService { ApoStatus = 2 },
+            new MockSettingsService(), new MockEndpointService(), new DiagnosticsService());
+        Assert.AreEqual(ApoConnectionStatus.Error, vm.ConnectionStatus);
+        StringAssert.Contains(vm.StatusBadgeText, "BYPASS");
+        Assert.IsFalse(vm.OutputMeterAvailable);
+    }
+
+    [TestMethod]
+    public void Retry_ReleasesOldMapping_AndDisposeRequestsBypass()
+    {
+        var ipc = new MockIpcService();
+        var vm = new MainViewModel(ipc, new MockSettingsService(), new MockEndpointService(), new DiagnosticsService());
+        vm.RetryConnection();
+        Assert.AreEqual(1, ipc.DisconnectCalls);
+        Assert.AreEqual(2, ipc.ConnectCalls);
+        Assert.AreEqual(ApoConnectionStatus.Connecting, vm.ConnectionStatus);
+        Assert.IsFalse(vm.OutputMeterAvailable);
+        vm.Dispose();
+        Assert.IsFalse(ipc.LastEnabled);
+        Assert.AreEqual(0f, ipc.LastIntensity);
+        Assert.AreEqual(0u, ipc.LastAbState);
+    }
+
+    [TestMethod]
+    public void EffectAssociation_RecognizesBothBuilds_NotUiPropertyClsid()
+    {
+        Assert.IsTrue(WindowsAudioEndpointService.IsKnownEpicenterEffect("{68C32E69-906A-4A0E-9214-41A832A88877}"));
+        Assert.IsTrue(WindowsAudioEndpointService.IsKnownEpicenterEffect("{8f7a7248-f617-45af-acda-c1c10f99e4d8}"));
+        Assert.IsFalse(WindowsAudioEndpointService.IsKnownEpicenterEffect("{d04e05a6-594b-4fb6-a80d-01af5eed7d1d}"));
+        Assert.IsFalse(WindowsAudioEndpointService.IsKnownEpicenterEffect(null));
+    }
+
     private class MockIpcService : IIpcBridgeService
     {
         public bool IsConnected => true;
+        public bool TelemetryAvailable { get; set; } = true;
+        public uint ApoStatus { get; set; } = 1;
+        public int ConnectCalls { get; private set; }
+        public int DisconnectCalls { get; private set; }
         public bool LastEnabled { get; private set; }
         public float LastIntensity { get; private set; }
         public uint LastAbState { get; private set; }
         public uint LastPreset { get; private set; }
 
-        public void Connect() { }
-        public void Disconnect() { }
+        public void Connect() { ConnectCalls++; }
+        public void Disconnect() { DisconnectCalls++; }
         public void SetParameters(bool enabled, float intensity, uint abState, uint targetPreset = 0)
         {
             LastEnabled = enabled;
@@ -537,9 +613,9 @@ public class IpcAndViewModelTests
                 DspTimeMicroseconds = 20.0f,
                 PeakDbfs = -6.0f,
                 RmsDbfs = -18.0f,
-                ApoStatus = 1
+                ApoStatus = ApoStatus
             };
-            return true;
+            return TelemetryAvailable;
         }
 
         public void Dispose() { }
@@ -561,6 +637,7 @@ public class IpcAndViewModelTests
 
     private class MockEndpointService : IAudioEndpointService
     {
+        public bool IsApoBound { get; set; } = true;
         public event EventHandler? DefaultDeviceChanged;
 
         public AudioEndpointInfo? GetDefaultRenderEndpoint() => new(
@@ -568,7 +645,7 @@ public class IpcAndViewModelTests
             Name: "Speakers (Studio USB DAC)",
             IsDefault: true,
             Status: "Active",
-            IsApoBound: true
+            IsApoBound: IsApoBound
         );
 
         public IReadOnlyList<AudioEndpointInfo> GetRenderEndpoints() =>

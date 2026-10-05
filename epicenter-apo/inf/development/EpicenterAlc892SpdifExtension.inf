@@ -1,0 +1,56 @@
+; Local development extension for this PC's inspected ALC892/Microsoft HDAudio
+; parent and its existing eSpdifOutTopo interface ONLY. Not a universal package.
+; Syntax/signability checks cannot establish actual audiodg loading, and this
+; package must not be installed until a trusted deployment route is authorized.
+[Version]
+Signature = "$WINDOWS NT$"
+Class = Extension
+ClassGuid = {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Provider = %ProviderName%
+ExtensionId = {7A301D02-6014-41A5-BF23-45F456AC9833}
+DriverVer = 10/04/2026,1.0.0.2
+CatalogFile = EpicenterAlc892SpdifExtension.cat
+PnpLockdown = 1
+
+[Manufacturer]
+%ProviderName% = EpicenterExtensions,NTamd64.10.0...22000
+
+[EpicenterExtensions.NTamd64.10.0...22000]
+%ExtensionName% = Epicenter_Extension,HDAUDIO\FUNC_01&VEN_10EC&DEV_0892&SUBSYS_18497893
+
+[Epicenter_Extension]
+
+[Epicenter_Extension.Components]
+AddComponent = EpicenterEfx,,Epicenter_AddComponent
+
+[Epicenter_AddComponent]
+ComponentIDs = VEN_EPICENTERDSP&CID_EFX
+Description = %ComponentName%
+
+[Epicenter_Extension.Interfaces]
+AddInterface = %KSCATEGORY_AUDIO%,%SpdifTopology%,Epicenter_Interface
+AddInterface = %KSCATEGORY_TOPOLOGY%,%SpdifTopology%,Epicenter_Interface
+
+[Epicenter_Interface]
+AddReg = Epicenter_EfxAssociation
+
+[Epicenter_EfxAssociation]
+HKR,FX\0,%PKEY_FX_Association%,,%KSNODETYPE_ANY%
+HKR,FX\0,%PKEY_ItemNameDisplay%,,%ComponentName%
+HKR,FX\0,%PKEY_FX_EndpointEffectClsid%,,%EpicenterClsid%
+HKR,FX\0,%PKEY_EFX_ProcessingModes_Supported_For_Streaming%,0x00010000,%AUDIO_SIGNALPROCESSINGMODE_DEFAULT%
+
+[Strings]
+ProviderName = "EpicenterDSP Labs"
+ExtensionName = "EpicenterDSP ALC892 SPDIF development association"
+ComponentName = "EpicenterDSP Windows APO (Development)"
+EpicenterClsid = "{8F7A7248-F617-45AF-ACDA-C1C10F99E4D8}"
+SpdifTopology = "eSpdifOutTopo"
+KSCATEGORY_AUDIO = "{6994AD04-93EF-11D0-A3CC-00A0C9223196}"
+KSCATEGORY_TOPOLOGY = "{DDA54A40-1E4C-11D1-A050-405705C10000}"
+KSNODETYPE_ANY = "{00000000-0000-0000-0000-000000000000}"
+PKEY_FX_Association = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},0"
+PKEY_ItemNameDisplay = "{B725F130-47EF-101A-A5F1-02608C9EEBAC},10"
+PKEY_FX_EndpointEffectClsid = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},7"
+PKEY_EFX_ProcessingModes_Supported_For_Streaming = "{D3993A3F-99C2-4402-B5EC-A92A0367664B},7"
+AUDIO_SIGNALPROCESSINGMODE_DEFAULT = "{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}"

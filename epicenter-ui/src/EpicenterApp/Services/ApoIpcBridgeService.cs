@@ -55,6 +55,20 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
     private byte* _pointer;
     private readonly object _lock = new();
     private bool _disposed;
+    private readonly string _globalName;
+    private readonly string _localName;
+    private bool _hasPendingParameters;
+    private bool _pendingEnabled;
+    private float _pendingIntensity;
+    private uint _pendingAbState;
+    private uint _pendingPreset;
+    public string? ConnectionError { get; private set; }
+
+    public ApoIpcBridgeService(string? mappingName = null)
+    {
+        _globalName = mappingName ?? GlobalName;
+        _localName = mappingName ?? LocalName;
+    }
 
     public bool IsConnected
     {
@@ -73,49 +87,74 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
     {
         lock (_lock)
         {
+            if (_disposed) return;
             if (_pointer != null) return;
+            ConnectionError = null;
 
             try
             {
                 // Try Global namespace first (standard Session 0 audiodg <-> user Session 1)
-                _mmf = MemoryMappedFile.OpenExisting(GlobalName, MemoryMappedFileRights.ReadWrite);
+                _mmf = MemoryMappedFile.OpenExisting(_globalName, MemoryMappedFileRights.ReadWrite);
             }
             catch (FileNotFoundException)
             {
                 try
                 {
                     // Fallback to Local namespace
-                    _mmf = MemoryMappedFile.OpenExisting(LocalName, MemoryMappedFileRights.ReadWrite);
+                    _mmf = MemoryMappedFile.OpenExisting(_localName, MemoryMappedFileRights.ReadWrite);
                 }
-                catch
+                catch (Exception ex)
                 {
                     _mmf = null;
+                    ConnectionError = DescribeConnectionError(ex);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 _mmf = null;
+                ConnectionError = DescribeConnectionError(ex);
             }
 
             if (_mmf == null) return;
 
             try
             {
-                _accessor = _mmf.CreateViewAccessor(0, 4096, MemoryMappedFileAccess.ReadWrite);
+                // Map the existing extent, not an assumed size. The frozen C++
+                // v1 structure is 4088 bytes, although its page is 4096 bytes.
+                _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
+                if (_accessor.Capacity < sizeof(EpicenterIpcSharedState))
+                    throw new InvalidDataException("Bloque IPC incompleto.");
                 _accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref _pointer);
+                _pointer += _accessor.PointerOffset;
 
                 var state = (EpicenterIpcSharedState*)_pointer;
-                if (state->Magic != MagicExpected)
+                if (state->Magic != MagicExpected || state->ProtocolVersion != 1 || state->InitFlags != 1 ||
+                    state->StructSize < sizeof(EpicenterIpcSharedState) || state->StructSize > _accessor.Capacity)
                 {
+                    ConnectionError = "El APO usa un contrato IPC incompatible o no inicializado.";
                     Disconnect();
                 }
+                else if (_hasPendingParameters)
+                {
+                    // The APO may load after the UI. Replay the latest desired
+                    // control state on every newly opened mapping, not defaults.
+                    SetParameters(_pendingEnabled, _pendingIntensity, _pendingAbState, _pendingPreset);
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                ConnectionError = DescribeConnectionError(ex);
                 Disconnect();
             }
         }
     }
+
+    private static string DescribeConnectionError(Exception ex) => ex switch
+    {
+        FileNotFoundException => "Windows no ha cargado EpicenterAPO. Instala y vincula el APO a la salida activa.",
+        UnauthorizedAccessException => "Windows denego acceso al IPC del APO. No se modificaron permisos.",
+        _ => $"No se pudo abrir el IPC: {ex.Message}"
+    };
 
     public void Disconnect()
     {
@@ -141,6 +180,12 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
     {
         lock (_lock)
         {
+            if (_disposed) return;
+            _hasPendingParameters = true;
+            _pendingEnabled = enabled;
+            _pendingIntensity = float.IsFinite(intensity) ? Math.Clamp(intensity, 0f, 100f) : 0f;
+            _pendingAbState = abState;
+            _pendingPreset = targetPreset;
             if (_pointer == null)
             {
                 Connect();
@@ -161,8 +206,10 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
                 safeIntensity = 100.0f;
             }
 
-            // 2. Advance SeqLock counter to odd (writing in progress) using hardware interlocked increment
-            Interlocked.Increment(ref *(int*)&state->Control.Sequence);
+            // Single UI writer. Recover an odd counter left by a previously
+            // interrupted write without changing the frozen SeqLock layout.
+            uint writingSequence = unchecked((uint)Volatile.Read(ref *(int*)&state->Control.Sequence) + 1u) | 1u;
+            Interlocked.Exchange(ref *(int*)&state->Control.Sequence, unchecked((int)writingSequence));
             Thread.MemoryBarrier();
 
             // 3. Write control fields
@@ -174,7 +221,7 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
             Thread.MemoryBarrier();
 
             // 4. Advance SeqLock counter to even (stable)
-            Interlocked.Increment(ref *(int*)&state->Control.Sequence);
+            Interlocked.Exchange(ref *(int*)&state->Control.Sequence, unchecked((int)(writingSequence + 1u)));
         }
     }
 
@@ -209,6 +256,8 @@ public sealed unsafe class ApoIpcBridgeService : IIpcBridgeService
     public void Dispose()
     {
         if (_disposed) return;
+        // Do not leave an effect enabled with no control window. No IPC layout change.
+        if (IsConnected) SetParameters(false, 0, 0);
         _disposed = true;
         Disconnect();
     }

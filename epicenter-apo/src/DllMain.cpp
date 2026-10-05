@@ -65,9 +65,11 @@ static HRESULT setRegistryDword(HKEY root, const wchar_t* subkey, const wchar_t*
 
 STDAPI DllRegisterServer() {
     wchar_t modulePath[MAX_PATH];
-    if (!GetModuleFileNameW(g_hModule, modulePath, MAX_PATH)) {
+    const DWORD modulePathLength = GetModuleFileNameW(g_hModule, modulePath, MAX_PATH);
+    if (!modulePathLength) {
         return HRESULT_FROM_WIN32(GetLastError());
     }
+    if (modulePathLength >= MAX_PATH) return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
 
     const wchar_t* clsidKey = L"CLSID\\" EPICENTER_APO_CLSID_STRING;
     const wchar_t* inprocKey = L"CLSID\\" EPICENTER_APO_CLSID_STRING L"\\InprocServer32";
@@ -85,20 +87,36 @@ STDAPI DllRegisterServer() {
     hr = setRegistryString(HKEY_CLASSES_ROOT, progIdKey, nullptr, EPICENTER_APO_PROGID);
     if (FAILED(hr)) return hr;
 
-    // Register under AudioEngine\AudioProcessingObjects for audiodg.exe authorization
+    // Legacy development registration. This does not associate the APO with an
+    // endpoint and does not replace a signed componentized driver package.
     const wchar_t* apoKey = L"AudioEngine\\AudioProcessingObjects\\" EPICENTER_APO_CLSID_STRING;
-    setRegistryString(HKEY_CLASSES_ROOT, apoKey, L"FriendlyName", EPICENTER_APO_FRIENDLY_NAME);
-    setRegistryString(HKEY_CLASSES_ROOT, apoKey, L"Copyright", L"Copyright (c) Epicenter DSP");
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MajorVersion", 1);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MinorVersion", 0);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"Flags", 15);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MinInputConnections", 1);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MaxInputConnections", 1);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MinOutputConnections", 1);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MaxOutputConnections", 1);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"MaxInstances", 0xFFFFFFFF);
-    setRegistryDword(HKEY_CLASSES_ROOT, apoKey, L"NumAPOInterfaces", 1);
-    setRegistryString(HKEY_CLASSES_ROOT, apoKey, L"APOInterface0", L"{885c7b80-3fa2-4e5a-be07-cf01e1d6e2cd}");
+    struct StringProperty { const wchar_t* name; const wchar_t* value; };
+    const StringProperty strings[] = {
+        {L"FriendlyName", EPICENTER_APO_FRIENDLY_NAME},
+        {L"Copyright", L"Copyright (c) Epicenter DSP"},
+        // IAudioProcessingObject, as in Microsoft's componentized APO sample.
+        {L"APOInterface0", L"{FD7F2B29-24D0-4B5C-B177-592C39F9CA10}"},
+    };
+    for (const auto& property : strings) {
+        hr = setRegistryString(HKEY_CLASSES_ROOT, apoKey, property.name, property.value);
+        if (FAILED(hr)) return hr;
+    }
+    struct DwordProperty { const wchar_t* name; DWORD value; };
+    const DwordProperty dwords[] = {
+        {L"MajorVersion", 1},
+        {L"MinorVersion", 0},
+        {L"Flags", static_cast<DWORD>(APO_FLAG_DEFAULT | APO_FLAG_INPLACE)},
+        {L"MinInputConnections", 1},
+        {L"MaxInputConnections", 1},
+        {L"MinOutputConnections", 1},
+        {L"MaxOutputConnections", 1},
+        {L"MaxInstances", 32},
+        {L"NumAPOInterfaces", 1},
+    };
+    for (const auto& property : dwords) {
+        hr = setRegistryDword(HKEY_CLASSES_ROOT, apoKey, property.name, property.value);
+        if (FAILED(hr)) return hr;
+    }
 
     return S_OK;
 }
@@ -109,9 +127,14 @@ STDAPI DllUnregisterServer() {
     const wchar_t* clsidKey = L"CLSID\\" EPICENTER_APO_CLSID_STRING;
     const wchar_t* apoKey = L"AudioEngine\\AudioProcessingObjects\\" EPICENTER_APO_CLSID_STRING;
 
-    RegDeleteKeyW(HKEY_CLASSES_ROOT, inprocKey);
-    RegDeleteKeyW(HKEY_CLASSES_ROOT, progIdKey);
-    RegDeleteKeyW(HKEY_CLASSES_ROOT, clsidKey);
-    RegDeleteKeyW(HKEY_CLASSES_ROOT, apoKey);
-    return S_OK;
+    const wchar_t* keys[] = {inprocKey, progIdKey, clsidKey, apoKey};
+    HRESULT result = S_OK;
+    for (const auto* key : keys) {
+        const LSTATUS status = RegDeleteKeyW(HKEY_CLASSES_ROOT, key);
+        if (status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND &&
+            status != ERROR_PATH_NOT_FOUND && SUCCEEDED(result)) {
+            result = HRESULT_FROM_WIN32(status);
+        }
+    }
+    return result;
 }
